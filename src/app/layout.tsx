@@ -13,8 +13,15 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
-      <body className={`${display.variable} ${body.variable} ${mono.variable}`}>{children}</body>
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${display.variable} ${body.variable} ${mono.variable}`}>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{var t=localStorage.getItem("faceturn-theme");if(t!=="light"&&t!=="dark")t=matchMedia("(prefers-color-scheme: light)").matches?"light":"dark";document.documentElement.dataset.theme=t}catch(e){}`,
+          }}
+        />
+        {children}
+      </body>
     </html>
   );
 }

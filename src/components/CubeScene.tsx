@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { parseMove, stickerEntries, type CubeState, type Face } from "../lib/cube";
 import type { Palette } from "../lib/palette";
 
@@ -84,11 +84,24 @@ export function CubeScene({
   onCamera: (next: { x: number; y: number }) => void;
 }) {
   const stageRef = useRef<HTMLDivElement>(null);
+  const sceneRef = useRef<HTMLDivElement>(null);
   const [live, setLive] = useState(false);
   const orbit = useRef<{ x: number; y: number; camX: number; camY: number } | null>(null);
+  const orbitFrame = useRef(0);
   const drag = useRef<{ x: number; y: number; face: Face } | null>(null);
   const endRef = useRef(onAnimEnd);
   endRef.current = onAnimEnd;
+
+  function paintCamera(next: { x: number; y: number }) {
+    const scene = sceneRef.current;
+    if (!scene) return;
+    scene.style.transform = `rotateX(${next.x}deg) rotateY(${next.y}deg)`;
+  }
+
+  useLayoutEffect(() => {
+    if (orbit.current) return;
+    paintCamera(camera);
+  }, [camera]);
 
   useEffect(() => {
     if (!anim) {
@@ -121,10 +134,13 @@ export function CubeScene({
 
   function pointerMove(event: React.PointerEvent) {
     if (orbit.current) {
-      onCamera({
-        x: Math.max(-70, Math.min(70, orbit.current.camX + (event.clientY - orbit.current.y) * 0.4)),
-        y: orbit.current.camY + (event.clientX - orbit.current.x) * 0.5,
-      });
+      const next = {
+        x: Math.max(-70, Math.min(70, orbit.current.camX + (event.clientY - orbit.current.y) * 0.35)),
+        y: orbit.current.camY + (event.clientX - orbit.current.x) * 0.45,
+      };
+      paintCamera(next);
+      cancelAnimationFrame(orbitFrame.current);
+      orbitFrame.current = requestAnimationFrame(() => onCamera(next));
       return;
     }
     if (!drag.current) return;
@@ -143,7 +159,14 @@ export function CubeScene({
 
   function pointerUp() {
     drag.current = null;
+    if (!orbit.current || !sceneRef.current) {
+      orbit.current = null;
+      return;
+    }
+    const match = sceneRef.current.style.transform.match(/rotateX\(([-\d.]+)deg\) rotateY\(([-\d.]+)deg\)/);
     orbit.current = null;
+    if (!match) return;
+    onCamera({ x: Number(match[1]), y: Number(match[2]) });
   }
 
   return (
@@ -156,34 +179,48 @@ export function CubeScene({
       onPointerCancel={pointerUp}
     >
       <div className="table-shadow" />
-      <div className="scene" style={{ transform: `rotateX(${camera.x}deg) rotateY(${camera.y}deg)` }}>
-        {cube.cubies.map((cubie) => (
-          <div
-            key={cubie.id}
-            className={anim ? "cubie turning" : "cubie"}
-            style={{
-              transform: `${spin(anim?.move ?? "", cubie.pos, Boolean(anim && live))}translate3d(${cubie.pos[0] * STEP}px, ${-cubie.pos[1] * STEP}px, ${cubie.pos[2] * STEP}px)`,
-              transitionDuration: anim ? `${anim.duration}ms` : "0ms",
-            }}
-          >
-            {FACES.map(({ face, pose }) => {
-              const color = stickerEntries(cubie).find(([dir]) => dir === face)?.[1];
-              return (
-                <div key={face} className="face" style={{ transform: pose }}>
-                  {color ? (
-                    <button
-                      type="button"
-                      className="sticker"
-                      data-face={face}
-                      aria-label={`${palette[color].name} sticker`}
-                      style={{ background: palette[color].hex }}
-                    />
-                  ) : null}
+      <div className="viewport">
+        <div
+          ref={sceneRef}
+          className="scene"
+          style={{ transform: `rotateX(${camera.x}deg) rotateY(${camera.y}deg)` }}
+        >
+          {cube.cubies.map((cubie) => {
+            const spinning = Boolean(anim && live && inSlice(parseMove(anim.move).turn, cubie.pos));
+            return (
+              <div
+                key={cubie.id}
+                className={spinning ? "pivot turning" : "pivot"}
+                style={{
+                  transform: spin(anim?.move ?? "", cubie.pos, spinning),
+                  transitionDuration: spinning && anim ? `${anim.duration}ms` : "0ms",
+                }}
+              >
+                <div
+                  className="cubie"
+                  style={{ transform: `translate3d(${cubie.pos[0] * STEP}px, ${-cubie.pos[1] * STEP}px, ${cubie.pos[2] * STEP}px)` }}
+                >
+                  {FACES.map(({ face, pose }) => {
+                    const color = stickerEntries(cubie).find(([dir]) => dir === face)?.[1];
+                    return (
+                      <div key={face} className="face" style={{ transform: pose }}>
+                        {color ? (
+                          <button
+                            type="button"
+                            className="sticker"
+                            data-face={face}
+                            aria-label={`${palette[color].name} sticker`}
+                            style={{ background: palette[color].hex }}
+                          />
+                        ) : null}
+                      </div>
+                    );
+                  })}
                 </div>
-              );
-            })}
-          </div>
-        ))}
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

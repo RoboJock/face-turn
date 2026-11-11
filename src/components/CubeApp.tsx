@@ -43,6 +43,7 @@ const STAGE_LABEL: Record<Stage, string> = {
 };
 
 const MOVE_ROWS = ["U", "D", "L", "R", "F", "B"] as const;
+const TURN_MS = 280;
 
 export function CubeApp() {
   const backend = useMemo<Backend>(() => createBackend(), []);
@@ -68,11 +69,17 @@ export function CubeApp() {
   const [hinting, setHinting] = useState(false);
   const [palette, setPalette] = useState<Palette>(DEFAULT_PALETTE);
   const [camera, setCamera] = useState({ x: -28, y: 34 });
+  const [theme, setTheme] = useState<"light" | "dark">("dark");
   const [user, setUser] = useState<AppUser | null>(null);
   const [board, setBoard] = useState<SolveRecord[]>([]);
   const [history, setHistory] = useState<SolveRecord[]>([]);
   const [status, setStatus] = useState("");
   const [boardName, setBoardName] = useState("");
+
+  useEffect(() => {
+    const saved = document.documentElement.dataset.theme;
+    setTheme(saved === "light" ? "light" : "dark");
+  }, []);
 
   useEffect(() => {
     const stored = localStorage.getItem("faceturn-palette");
@@ -202,7 +209,7 @@ export function CubeApp() {
     startedRef.current = null;
     setHint(null);
     setPhaseBoth("scrambling");
-    enqueue(alg, prefersReduced() ? 16 : 75, false);
+    enqueue(alg, prefersReduced() ? 16 : 140, false);
   }
 
   function resetCube() {
@@ -298,7 +305,7 @@ export function CubeApp() {
   function orient(color: "U" | "D", face: "U" | "D") {
     if (jobRef.current || queueRef.current.length > 0) return;
     const alg = movesToPutColorOn(cubeRef.current, color, face);
-    if (alg) enqueue(alg, prefersReduced() ? 16 : 180);
+    if (alg) enqueue(alg, prefersReduced() ? 16 : TURN_MS);
   }
 
   useEffect(() => {
@@ -309,7 +316,7 @@ export function CubeApp() {
       if ("urfdlb".includes(key)) {
         event.preventDefault();
         const suffix = event.altKey ? "2" : event.shiftKey ? "'" : "";
-        enqueue(`${key.toUpperCase()}${suffix}`, prefersReduced() ? 16 : 160);
+        enqueue(`${key.toUpperCase()}${suffix}`, prefersReduced() ? 16 : TURN_MS);
       }
     }
     window.addEventListener("keydown", onKey);
@@ -326,10 +333,26 @@ export function CubeApp() {
           <p className="mark">Face Turn</p>
           <h1>Solve a 3×3, with a hint when you want one.</h1>
         </div>
-        <button type="button" className="who" onClick={() => setTab("you")}>
-          <span>{user?.guest ? "Guest" : user?.name ?? "Guest"}</span>
-          <small>{user?.guest || !user ? "Guest session" : user.email || user.provider}</small>
-        </button>
+        <div className="top-actions">
+          <button
+            type="button"
+            className="theme-toggle"
+            aria-pressed={theme === "dark"}
+            aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+            onClick={() => {
+              const next = theme === "dark" ? "light" : "dark";
+              setTheme(next);
+              document.documentElement.dataset.theme = next;
+              localStorage.setItem("faceturn-theme", next);
+            }}
+          >
+            {theme === "dark" ? "Dark mode" : "Light mode"}
+          </button>
+          <button type="button" className="who" onClick={() => setTab("you")}>
+            <span>{user?.guest ? "Guest" : user?.name ?? "Guest"}</span>
+            <small>{user?.guest || !user ? "Guest session" : user.email || user.provider}</small>
+          </button>
+        </div>
       </header>
 
       {backend.mode === "local" ? (
@@ -347,24 +370,24 @@ export function CubeApp() {
             palette={palette}
             anim={anim}
             onAnimEnd={finishAnim}
-            onTurn={(move) => enqueue(move, prefersReduced() ? 16 : 160)}
+            onTurn={(move) => enqueue(move, prefersReduced() ? 16 : TURN_MS)}
             camera={camera}
             onCamera={setCamera}
           />
           <div className="move-pad" aria-label="Face turns">
             {MOVE_ROWS.map((face) => (
               <div key={face} className="move-row">
-                <button type="button" onClick={() => enqueue(face, 160)}>{face}</button>
-                <button type="button" onClick={() => enqueue(`${face}'`, 160)}>{face}′</button>
-                <button type="button" onClick={() => enqueue(`${face}2`, 160)}>{face}2</button>
+                <button type="button" onClick={() => enqueue(face, TURN_MS)}>{face}</button>
+                <button type="button" onClick={() => enqueue(`${face}'`, TURN_MS)}>{face}′</button>
+                <button type="button" onClick={() => enqueue(`${face}2`, TURN_MS)}>{face}2</button>
               </div>
             ))}
           </div>
           <div className="cube-turns">
             <button type="button" onClick={() => orient("D", "U")}>Yellow on top</button>
             <button type="button" onClick={() => orient("U", "D")}>White on bottom</button>
-            <button type="button" onClick={() => enqueue("y'", 180)}>Turn left</button>
-            <button type="button" onClick={() => enqueue("y", 180)}>Turn right</button>
+            <button type="button" onClick={() => enqueue("y'", TURN_MS)}>Turn left</button>
+            <button type="button" onClick={() => enqueue("y", TURN_MS)}>Turn right</button>
             <button type="button" onClick={() => setCamera({ x: -28, y: 34 })}>Reset view</button>
           </div>
           <p className="keys">Drag a sticker to turn that face. Drag empty space to look around. Keys U D L R F B, Shift for inverse, Alt for double.</p>
@@ -429,7 +452,7 @@ export function CubeApp() {
                   <p>{hint.detail}</p>
                   {hint.algorithm ? <p className="alg">{hint.algorithm}</p> : null}
                   {hint.algorithm ? (
-                    <button type="button" onClick={() => enqueue(hint.algorithm, prefersReduced() ? 16 : 220)}>
+                    <button type="button" onClick={() => enqueue(hint.algorithm, prefersReduced() ? 16 : TURN_MS)}>
                       Show the moves
                     </button>
                   ) : null}
