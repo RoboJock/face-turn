@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { createBackend, type AppUser, type Backend, type SolveRecord } from "../lib/backend";
+import { createBackend, firebasePublicConfig, type AppUser, type Backend, type SolveRecord } from "../lib/backend";
 import {
   applyMove,
   formatMove,
@@ -334,7 +334,9 @@ export function CubeApp() {
 
       {backend.mode === "local" ? (
         <p className="banner">
-          Firebase is not connected, so guest solves and the leaderboard stay in this browser. GitHub sign-in starts working when the Firebase project is connected.
+          {firebasePublicConfig()
+            ? `Firebase project ${firebasePublicConfig()?.projectId} is connected, but sign-in is still off, so solves stay in this browser.`
+            : "Firebase is not connected, so guest solves and the leaderboard stay in this browser. GitHub sign-in starts working when the Firebase project is connected."}
         </p>
       ) : null}
 

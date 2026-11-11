@@ -421,6 +421,42 @@ export function createLocalBackend(): Backend {
   };
 }
 
+function createResilientBackend(): Backend {
+  const remote = createFirebaseBackend();
+  const local = createLocalBackend();
+  let active: Backend = remote;
+  return {
+    get mode() {
+      return active.mode;
+    },
+    subscribe(listener) {
+      let stopLocal: (() => void) | undefined;
+      const stopRemote = remote.subscribe((user) => {
+        if (user) {
+          listener(user);
+          return;
+        }
+        if (active === local) return;
+        active = local;
+        stopLocal = local.subscribe(listener);
+      });
+      return () => {
+        stopRemote();
+        stopLocal?.();
+      };
+    },
+    register: (...args) => active.register(...args),
+    signIn: (...args) => active.signIn(...args),
+    signInGitHub: () => active.signInGitHub(),
+    signOut: () => active.signOut(),
+    saveColors: (palette) => active.saveColors(palette),
+    loadColors: () => active.loadColors(),
+    saveSolve: (input) => active.saveSolve(input),
+    mySolves: () => active.mySolves(),
+    leaderboard: () => active.leaderboard(),
+  };
+}
+
 export function createBackend(): Backend {
-  return firebasePublicConfig() ? createFirebaseBackend() : createLocalBackend();
+  return firebasePublicConfig() ? createResilientBackend() : createLocalBackend();
 }
