@@ -402,7 +402,7 @@ export function CubeApp() {
                 {phase === "idle" && "Scramble when you want a timed solve."}
                 {phase === "scrambling" && "Scrambling…"}
                 {phase === "ready" && (track ? "Timer starts on your first turn." : "Timer is off for this solve.")}
-                {phase === "solving" && `${solution.length} moves`}
+                {phase === "solving" && `${solution.length} ${solution.length === 1 ? "move" : "moves"}`}
                 {phase === "solved" && (track && finalMs !== null ? `Solved in ${formatTime(finalMs)}` : "Solved")}
               </p>
               <div className="row">
@@ -488,7 +488,7 @@ export function CubeApp() {
                       <span>{index + 1}</span>
                       <strong>{entry.name}</strong>
                       <em>{entry.timeMs === null ? "—" : formatTime(entry.timeMs)}</em>
-                      <small>{formatWhen(entry.at)} · {entry.moveCount} moves</small>
+                      <small>{formatWhen(entry.at)} · {entry.moveCount} {entry.moveCount === 1 ? "move" : "moves"}</small>
                     </li>
                   ))}
                 </ol>
@@ -638,7 +638,7 @@ function AccountTab({
           {history.map((solve) => (
             <li key={solve.id}>
               <strong>{solve.timeMs === null ? "Untimed" : formatTime(solve.timeMs)}</strong>
-              <span>{formatWhen(solve.at)} · {solve.moveCount} moves{solve.onBoard ? " · on the board" : ""}</span>
+              <span>{formatWhen(solve.at)} · {solve.moveCount} {solve.moveCount === 1 ? "move" : "moves"}{solve.onBoard ? " · on the board" : ""}</span>
             </li>
           ))}
         </ul>
