@@ -1,0 +1,48 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+    function nameOk(value) {
+      return value is string && value.size() >= 2 && value.size() <= 24;
+    }
+    function solveOk(data) {
+      return nameOk(data.name)
+        && data.scramble is string && data.scramble.size() > 0 && data.scramble.size() <= 200
+        && data.moves is string && data.moves.size() <= 2000
+        && data.moveCount is int && data.moveCount >= 0 && data.moveCount <= 500
+        && data.at is int && data.at > 0
+        && data.onBoard is bool
+        && data.uid == request.auth.uid
+        && (
+          (data.timeMs == null && data.onBoard == false)
+          || (data.timeMs is int && data.timeMs >= 1000 && data.timeMs <= 3600000)
+        );
+    }
+
+    match /users/{userId} {
+      allow read: if signedIn() && request.auth.uid == userId;
+      allow create, update: if signedIn()
+        && request.auth.uid == userId
+        && nameOk(request.resource.data.name)
+        && request.resource.data.guest is bool;
+      allow delete: if false;
+
+      match /solves/{solveId} {
+        allow read: if signedIn() && request.auth.uid == userId;
+        allow create: if signedIn() && request.auth.uid == userId && solveOk(request.resource.data);
+        allow update, delete: if false;
+      }
+    }
+
+    match /leaderboard/{entryId} {
+      allow read: if true;
+      allow create: if signedIn()
+        && solveOk(request.resource.data)
+        && request.resource.data.onBoard == true
+        && request.resource.data.timeMs is int;
+      allow update, delete: if false;
+    }
+  }
+}
