@@ -2,6 +2,7 @@
 
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { parseMove, stickerEntries, type CubeState, type Face } from "../lib/cube";
+import { faceTurnFromDrag } from "../lib/drag";
 import type { Palette } from "../lib/palette";
 
 const STEP = 70;
@@ -154,7 +155,7 @@ export function CubeScene({
   function pointerMove(event: React.PointerEvent) {
     if (orbit.current) {
       const next = {
-        x: Math.max(-70, Math.min(70, orbit.current.camX + (event.clientY - orbit.current.y) * 0.35)),
+        x: Math.max(-70, Math.min(70, orbit.current.camX - (event.clientY - orbit.current.y) * 0.35)),
         y: orbit.current.camY + (event.clientX - orbit.current.x) * 0.45,
       };
       paintCamera(next);
@@ -168,10 +169,14 @@ export function CubeScene({
     if (Math.hypot(dx, dy) < 18) return;
     const rect = stageRef.current?.getBoundingClientRect();
     if (!rect) return;
-    const sx = drag.current.x - (rect.left + rect.width / 2);
-    const sy = drag.current.y - (rect.top + rect.height / 2);
-    const clockwise = sx * dy - sy * dx > 0;
-    const move = `${drag.current.face}${clockwise ? "" : "'"}`;
+    const originX = rect.left + rect.width / 2;
+    const originY = rect.top + rect.height * 0.46;
+    const move = faceTurnFromDrag(
+      drag.current.face,
+      [(drag.current.x - originX) / STEP, (drag.current.y - originY) / STEP],
+      [dx, dy],
+      camera,
+    );
     drag.current = null;
     onTurn(move);
   }
