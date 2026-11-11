@@ -1,15 +1,5 @@
 import type { Face } from "./cube";
 
-/** Right and up while looking at the face from outside. Cube +Y is up. */
-const FACE_AXES: Record<Face, { right: [number, number, number]; up: [number, number, number]; center: [number, number, number] }> = {
-  U: { right: [1, 0, 0], up: [0, 0, -1], center: [0, 1, 0] },
-  D: { right: [1, 0, 0], up: [0, 0, 1], center: [0, -1, 0] },
-  F: { right: [1, 0, 0], up: [0, 1, 0], center: [0, 0, 1] },
-  B: { right: [-1, 0, 0], up: [0, 1, 0], center: [0, 0, -1] },
-  R: { right: [0, 0, -1], up: [0, 1, 0], center: [1, 0, 0] },
-  L: { right: [0, 0, 1], up: [0, 1, 0], center: [-1, 0, 0] },
-};
-
 /** Cube vector to screen offset. +x right, +y down. Camera matches rotateX then rotateY. */
 export function projectCube(vec: [number, number, number], camera: { x: number; y: number }): [number, number] {
   const yaw = (camera.y * Math.PI) / 180;
@@ -27,32 +17,55 @@ export function projectCube(vec: [number, number, number], camera: { x: number; 
   return [x1, y1 * cosP - z1 * sinP];
 }
 
+type Vec = [number, number, number];
+
+/** How a clockwise quarter of each slice moves a cubie. Whole-cube x/y/z match R/U/F. */
+const SLICE_VELOCITY: Record<string, (pos: Vec) => Vec> = {
+  U: ([x, , z]) => [-z, 0, x],
+  D: ([x, , z]) => [z, 0, -x],
+  F: ([x, y]) => [y, -x, 0],
+  B: ([x, y]) => [-y, x, 0],
+  R: ([, y, z]) => [0, z, -y],
+  L: ([, y, z]) => [0, -z, y],
+  y: ([x, , z]) => [-z, 0, x],
+  x: ([, y, z]) => [0, z, -y],
+  z: ([x, y]) => [y, -x, 0],
+};
+
+function slicesAt([x, y, z]: Vec): string[] {
+  return [
+    y === 1 ? "U" : y === -1 ? "D" : "y",
+    x === 1 ? "R" : x === -1 ? "L" : "x",
+    z === 1 ? "F" : z === -1 ? "B" : "z",
+  ];
+}
+
 /**
- * Face turn that follows the pointer. `pointer` and `drag` are in the same
- * screen space as projectCube (y down), with the pointer measured from the cube origin.
+ * Turn that carries this cubie with the pointer. `drag` is screen movement, y down.
+ * A sideways drag slides the row; an upward drag slides the column.
  */
 export function faceTurnFromDrag(
   face: Face,
-  pointer: [number, number],
+  cubie: Vec,
   drag: [number, number],
   camera: { x: number; y: number },
 ): string {
-  const axes = FACE_AXES[face];
-  const center = projectCube(axes.center, camera);
-  const right = projectCube(axes.right, camera);
-  const up = projectCube(axes.up, camera);
-  const px = pointer[0] - center[0];
-  const py = pointer[1] - center[1];
-  const det = right[0] * up[1] - up[0] * right[1];
-  const localRight = Math.abs(det) < 1e-4 ? 0 : (px * up[1] - py * up[0]) / det;
-  const localUp = Math.abs(det) < 1e-4 ? 0 : (right[0] * py - right[1] * px) / det;
-  const clockwiseX = localUp * right[0] - localRight * up[0];
-  const clockwiseY = localUp * right[1] - localRight * up[1];
-  const follow = clockwiseX * drag[0] + clockwiseY * drag[1];
-  if (Math.abs(follow) < 1e-6) {
-    const horizontal = Math.abs(drag[0]) >= Math.abs(drag[1]);
-    const clockwise = horizontal ? drag[0] > 0 : drag[1] > 0;
-    return `${face}${clockwise ? "" : "'"}`;
+  let bestMove: string = face;
+  let bestScore = -Infinity;
+  for (const base of slicesAt(cubie)) {
+    const screen = projectCube(SLICE_VELOCITY[base](cubie), camera);
+    const alignment = screen[0] * drag[0] + screen[1] * drag[1];
+    for (const [move, score] of [
+      [base, alignment],
+      [`${base}'`, -alignment],
+    ] as const) {
+      const letter = move[0];
+      const bonus = letter === face ? 1e-4 : "xyz".includes(letter) ? -1e-4 : 0;
+      if (score + bonus > bestScore) {
+        bestScore = score + bonus;
+        bestMove = move;
+      }
+    }
   }
-  return `${face}${follow > 0 ? "" : "'"}`;
+  return bestMove;
 }

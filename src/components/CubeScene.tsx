@@ -82,6 +82,13 @@ function wholeTurn(turn: string): boolean {
   return turn === "x" || turn === "y" || turn === "z";
 }
 
+function cubieAt(target: HTMLElement): [number, number, number] | null {
+  const cubie = target.closest(".cubie") as HTMLElement | null;
+  const match = cubie?.style.transform.match(/translate3d\(([-\d.]+)px,\s*([-\d.]+)px,\s*([-\d.]+)px\)/);
+  if (!match) return null;
+  return [Math.round(Number(match[1]) / STEP), Math.round(-Number(match[2]) / STEP), Math.round(Number(match[3]) / STEP)];
+}
+
 export function CubeScene({
   cube,
   palette,
@@ -106,7 +113,7 @@ export function CubeScene({
   const [live, setLive] = useState(false);
   const orbit = useRef<{ x: number; y: number; camX: number; camY: number } | null>(null);
   const orbitFrame = useRef(0);
-  const drag = useRef<{ x: number; y: number; face: Face } | null>(null);
+  const drag = useRef<{ x: number; y: number; face: Face; cubie: [number, number, number] } | null>(null);
   const endRef = useRef(onAnimEnd);
   endRef.current = onAnimEnd;
 
@@ -143,7 +150,8 @@ export function CubeScene({
     const onCube = Boolean(target.closest(".cubie"));
     if (onCube) {
       const face = target.closest("[data-face]")?.getAttribute("data-face") as Face | undefined;
-      drag.current = face ? { x: event.clientX, y: event.clientY, face } : null;
+      const cubie = cubieAt(target);
+      drag.current = face && cubie ? { x: event.clientX, y: event.clientY, face, cubie } : null;
       orbit.current = null;
     } else {
       orbit.current = { x: event.clientX, y: event.clientY, camX: camera.x, camY: camera.y };
@@ -167,16 +175,7 @@ export function CubeScene({
     const dx = event.clientX - drag.current.x;
     const dy = event.clientY - drag.current.y;
     if (Math.hypot(dx, dy) < 18) return;
-    const rect = stageRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    const originX = rect.left + rect.width / 2;
-    const originY = rect.top + rect.height * 0.46;
-    const move = faceTurnFromDrag(
-      drag.current.face,
-      [(drag.current.x - originX) / STEP, (drag.current.y - originY) / STEP],
-      [dx, dy],
-      camera,
-    );
+    const move = faceTurnFromDrag(drag.current.face, drag.current.cubie, [dx, dy], camera);
     drag.current = null;
     onTurn(move);
   }
