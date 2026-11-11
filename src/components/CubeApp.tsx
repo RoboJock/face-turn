@@ -333,7 +333,7 @@ export function CubeApp() {
     <div className="shell">
       <header className="topbar">
         <div>
-          <p className="mark">Face Turn</p>
+          <p className="mark">Rubik's Cube</p>
           <h1>Solve a 3×3, with a hint when you want one.</h1>
         </div>
         <div className="top-actions">

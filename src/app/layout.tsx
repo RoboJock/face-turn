@@ -7,7 +7,7 @@ const body = Outfit({ subsets: ["latin"], variable: "--font-body" });
 const mono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["400", "500"], variable: "--font-mono" });
 
 export const metadata: Metadata = {
-  title: "Face Turn",
+  title: "Rubik's Cube",
   description: "Solve a 3×3 Rubik's Cube with tutorials, hints, an optional timer, and a leaderboard.",
 };
 
