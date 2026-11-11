@@ -140,7 +140,7 @@ h2 { margin: 18px 0 8px; font-size: 16px; }
 .viewport {
   position: absolute;
   inset: 0;
-  perspective: 1400px;
+  perspective: 780px;
   perspective-origin: 50% 42%;
 }
 .scene {
@@ -159,7 +159,29 @@ h2 { margin: 18px 0 8px; font-size: 16px; }
   height: 0;
   transform-origin: 0 0;
   transform-style: preserve-3d;
-  transition: transform cubic-bezier(0.33, 0.08, 0.2, 1);
+}
+.pivot.turning {
+  animation-duration: var(--dur);
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+.pivot.turning.axis-X { animation-name: slice-x; }
+.pivot.turning.axis-Y { animation-name: slice-y; }
+.pivot.turning.axis-Z { animation-name: slice-z; }
+@keyframes slice-x {
+  0% { transform: translate3d(0, 0, 0) rotateX(0deg); animation-timing-function: cubic-bezier(0.16, 0.72, 0.24, 1); }
+  36% { transform: translate3d(var(--lx), var(--ly), var(--lz)) rotateX(calc(var(--angle) * 0.42)); animation-timing-function: cubic-bezier(0.12, 0.8, 0.18, 1.22); }
+  100% { transform: translate3d(0, 0, 0) rotateX(var(--angle)); }
+}
+@keyframes slice-y {
+  0% { transform: translate3d(0, 0, 0) rotateY(0deg); animation-timing-function: cubic-bezier(0.16, 0.72, 0.24, 1); }
+  36% { transform: translate3d(var(--lx), var(--ly), var(--lz)) rotateY(calc(var(--angle) * 0.42)); animation-timing-function: cubic-bezier(0.12, 0.8, 0.18, 1.22); }
+  100% { transform: translate3d(0, 0, 0) rotateY(var(--angle)); }
+}
+@keyframes slice-z {
+  0% { transform: translate3d(0, 0, 0) rotateZ(0deg); animation-timing-function: cubic-bezier(0.16, 0.72, 0.24, 1); }
+  36% { transform: translate3d(var(--lx), var(--ly), var(--lz)) rotateZ(calc(var(--angle) * 0.42)); animation-timing-function: cubic-bezier(0.12, 0.8, 0.18, 1.22); }
+  100% { transform: translate3d(0, 0, 0) rotateZ(var(--angle)); }
 }
 .cubie {
   position: absolute;
@@ -175,6 +197,7 @@ h2 { margin: 18px 0 8px; font-size: 16px; }
   background: var(--plastic);
   transform-style: preserve-3d;
   border-radius: 4px;
+  backface-visibility: hidden;
 }
 .sticker, .face { cursor: grab; }
 .sticker {
@@ -184,6 +207,8 @@ h2 { margin: 18px 0 8px; font-size: 16px; }
   border-radius: 5px;
   padding: 0;
   box-shadow: inset 0 0 0 1px rgba(0,0,0,0.25), inset 0 -8px 12px rgba(0,0,0,0.15);
+  transform: translateZ(1.5px);
+  backface-visibility: hidden;
   cursor: grab;
 }
 .hint-arrow {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { parseMove, stickerEntries, type CubeState, type Face } from "../lib/cube";
 import type { Palette } from "../lib/palette";
 
@@ -14,22 +14,23 @@ const FACES: { face: Face; pose: string }[] = [
   { face: "L", pose: "rotateY(-90deg) translateZ(calc(var(--s) / 2))" },
 ];
 
+/** Quarter-turn sign in CSS space. Cube +Y is CSS −Y, which reverses X-axis turns. */
 const CLOCKWISE_SIGN: Record<string, number> = {
   U: -1,
   D: 1,
   F: 1,
   B: -1,
-  R: -1,
-  L: 1,
+  R: 1,
+  L: -1,
   y: -1,
-  x: -1,
+  x: 1,
   z: 1,
   u: -1,
   d: 1,
   f: 1,
   b: -1,
-  r: -1,
-  l: 1,
+  r: 1,
+  l: -1,
 };
 
 function axisOf(turn: string): "X" | "Y" | "Z" {
@@ -57,13 +58,27 @@ function inSlice(turn: string, pos: [number, number, number]): boolean {
   return false;
 }
 
-function spin(move: string, pos: [number, number, number], live: boolean): string {
-  if (!live) return "";
+function turnStyle(move: string, pos: [number, number, number], live: boolean): CSSProperties {
+  if (!live) return {};
   const parsed = parseMove(move);
-  if (!inSlice(parsed.turn, pos)) return "";
+  if (!inSlice(parsed.turn, pos)) return {};
   const direction = parsed.quarter === 2 ? 2 : parsed.quarter === 3 ? -1 : 1;
   const angle = direction * 90 * (CLOCKWISE_SIGN[parsed.turn] ?? 1);
-  return `rotate${axisOf(parsed.turn)}(${angle}deg) `;
+  const axis = axisOf(parsed.turn);
+  const lift = wholeTurn(parsed.turn) ? 0 : 18;
+  const liftX = axis === "X" ? Math.sign(parsed.turn === "L" || parsed.turn === "l" ? -1 : 1) * lift : 0;
+  const liftY = axis === "Y" ? (parsed.turn === "D" || parsed.turn === "d" ? lift : -lift) : 0;
+  const liftZ = axis === "Z" ? (parsed.turn === "B" || parsed.turn === "b" ? -lift : lift) : 0;
+  return {
+    ["--angle" as string]: `${angle}deg`,
+    ["--lx" as string]: `${liftX}px`,
+    ["--ly" as string]: `${liftY}px`,
+    ["--lz" as string]: `${liftZ}px`,
+  };
+}
+
+function wholeTurn(turn: string): boolean {
+  return turn === "x" || turn === "y" || turn === "z";
 }
 
 export function CubeScene({
@@ -191,13 +206,14 @@ export function CubeScene({
         >
           {cube.cubies.map((cubie) => {
             const spinning = Boolean(anim && live && inSlice(parseMove(anim.move).turn, cubie.pos));
+            const axis = spinning && anim ? axisOf(parseMove(anim.move).turn) : "Y";
             return (
               <div
                 key={cubie.id}
-                className={spinning ? "pivot turning" : "pivot"}
+                className={spinning ? `pivot turning axis-${axis}` : "pivot"}
                 style={{
-                  transform: spin(anim?.move ?? "", cubie.pos, spinning),
-                  transitionDuration: spinning && anim ? `${anim.duration}ms` : "0ms",
+                  ...turnStyle(anim?.move ?? "", cubie.pos, spinning),
+                  ["--dur" as string]: spinning && anim ? `${anim.duration}ms` : "0ms",
                 }}
               >
                 <div

@@ -43,7 +43,7 @@ const STAGE_LABEL: Record<Stage, string> = {
 };
 
 const MOVE_ROWS = ["U", "D", "L", "R", "F", "B"] as const;
-const TURN_MS = 280;
+const TURN_MS = 460;
 
 export function CubeApp() {
   const backend = useMemo<Backend>(() => createBackend(), []);
