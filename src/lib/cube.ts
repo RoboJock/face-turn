@@ -85,6 +85,11 @@ function remapStickers(stickers: StickerMap, face: Face): StickerMap {
   return next;
 }
 
+/** Solved, held the way the lessons do: yellow on top, white on the bottom. */
+export function restingCube(): CubeState {
+  return applyMove(solvedCube(), "x2");
+}
+
 export function solvedCube(): CubeState {
   const cubies: Cubie[] = [];
   let id = 0;
@@ -325,7 +330,7 @@ export function signature(state: CubeState): string {
 }
 
 export function replaySolved(scramble: string, solution: string): boolean {
-  return isSolved(applyAlg(applyAlg(solvedCube(), scramble), solution));
+  return isSolved(applyAlg(applyAlg(restingCube(), scramble), solution));
 }
 
 export function mulberry32(seed: number): () => number {

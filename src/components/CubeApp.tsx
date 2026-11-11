@@ -11,8 +11,8 @@ import {
   parseAlg,
   parseMove,
   replaySolved,
+  restingCube,
   scrambleAlg,
-  solvedCube,
   type CubeState,
 } from "../lib/cube";
 import { nextHint, stageOf, STAGE_ORDER, type Hint, type Stage } from "../lib/hints";
@@ -47,7 +47,7 @@ const TURN_MS = 280;
 
 export function CubeApp() {
   const backend = useMemo<Backend>(() => createBackend(), []);
-  const cubeRef = useRef<CubeState>(solvedCube());
+  const cubeRef = useRef<CubeState>(restingCube());
   const phaseRef = useRef<Phase>("idle");
   const queueRef = useRef<Job[]>([]);
   const jobRef = useRef<Job | null>(null);
@@ -66,6 +66,7 @@ export function CubeApp() {
   const [now, setNow] = useState(0);
   const [tab, setTab] = useState<Tab>("solve");
   const [hint, setHint] = useState<Hint | null>(null);
+  const [explainHint, setExplainHint] = useState(false);
   const [hinting, setHinting] = useState(false);
   const [palette, setPalette] = useState<Palette>(DEFAULT_PALETTE);
   const [camera, setCamera] = useState({ x: -28, y: 34 });
@@ -199,7 +200,7 @@ export function CubeApp() {
   function dealScramble() {
     if (busy()) return;
     const alg = scrambleAlg(20);
-    cubeRef.current = solvedCube();
+    cubeRef.current = restingCube();
     setCube(cubeRef.current);
     setScramble(alg);
     setSolution([]);
@@ -208,6 +209,7 @@ export function CubeApp() {
     setStartedAt(null);
     startedRef.current = null;
     setHint(null);
+    setExplainHint(false);
     setPhaseBoth("scrambling");
     enqueue(alg, prefersReduced() ? 16 : 140, false);
   }
@@ -216,7 +218,7 @@ export function CubeApp() {
     queueRef.current = [];
     jobRef.current = null;
     setAnim(null);
-    cubeRef.current = solvedCube();
+    cubeRef.current = restingCube();
     setCube(cubeRef.current);
     setScramble(null);
     setSolution([]);
@@ -262,6 +264,7 @@ export function CubeApp() {
     setHinting(true);
     window.setTimeout(() => {
       setHint(nextHint(cubeRef.current, namesOf(palette)));
+      setExplainHint(false);
       setHinting(false);
     }, 20);
   }
@@ -346,7 +349,7 @@ export function CubeApp() {
               localStorage.setItem("faceturn-theme", next);
             }}
           >
-            {theme === "dark" ? "Dark mode" : "Light mode"}
+            {theme === "dark" ? <MoonIcon /> : <SunIcon />}
           </button>
           <button type="button" className="who" onClick={() => setTab("you")}>
             <span>{user?.guest ? "Guest" : user?.name ?? "Guest"}</span>
@@ -364,46 +367,9 @@ export function CubeApp() {
       ) : null}
 
       <div className="layout">
-        <section className="play">
-          <CubeScene
-            cube={cube}
-            palette={palette}
-            anim={anim}
-            onAnimEnd={finishAnim}
-            onTurn={(move) => enqueue(move, prefersReduced() ? 16 : TURN_MS)}
-            camera={camera}
-            onCamera={setCamera}
-          />
-          <div className="move-pad" aria-label="Face turns">
-            {MOVE_ROWS.map((face) => (
-              <div key={face} className="move-row">
-                <button type="button" onClick={() => enqueue(face, TURN_MS)}>{face}</button>
-                <button type="button" onClick={() => enqueue(`${face}'`, TURN_MS)}>{face}′</button>
-                <button type="button" onClick={() => enqueue(`${face}2`, TURN_MS)}>{face}2</button>
-              </div>
-            ))}
-          </div>
-          <div className="cube-turns">
-            <button type="button" onClick={() => orient("D", "U")}>Yellow on top</button>
-            <button type="button" onClick={() => orient("U", "D")}>White on bottom</button>
-            <button type="button" onClick={() => enqueue("y'", TURN_MS)}>Turn left</button>
-            <button type="button" onClick={() => enqueue("y", TURN_MS)}>Turn right</button>
-            <button type="button" onClick={() => setCamera({ x: -28, y: 34 })}>Reset view</button>
-          </div>
-          <p className="keys">Drag a sticker to turn that face. Drag empty space to look around. Keys U D L R F B, Shift for inverse, Alt for double.</p>
-        </section>
-
-        <aside className="panel">
-          <div className="tabs" role="tablist">
-            {(["solve", "learn", "board", "you"] as Tab[]).map((item) => (
-              <button key={item} type="button" role="tab" aria-selected={tab === item} className={tab === item ? "on" : ""} onClick={() => setTab(item)}>
-                {item === "solve" ? "Solve" : item === "learn" ? "Learn" : item === "board" ? "Board" : "You"}
-              </button>
-            ))}
-          </div>
-
+        <section className={`play ${tab === "solve" ? "with-solve" : ""}`}>
           {tab === "solve" ? (
-            <div className="tab-body">
+            <div className="solve-side">
               <label className="track">
                 <input
                   type="checkbox"
@@ -446,16 +412,20 @@ export function CubeApp() {
                 {hinting ? "Looking…" : hint ? "Another hint" : "I'm stuck"}
               </button>
               {hint && stage !== "solved" ? (
+                <p className="hint-note">An arrow on the cube shows the next move.</p>
+              ) : null}
+              {hint && stage !== "solved" && hint.algorithm ? (
+                <div className="row">
+                  <button type="button" onClick={() => setExplainHint((open) => !open)}>{explainHint ? "Hide the words" : "Explain"}</button>
+                  <button type="button" onClick={() => enqueue(hint.algorithm, prefersReduced() ? 16 : TURN_MS)}>Play it</button>
+                </div>
+              ) : null}
+              {explainHint && hint && stage !== "solved" ? (
                 <article className="hint">
                   <h2>{hint.title}</h2>
                   <p>{hint.progress}</p>
                   <p>{hint.detail}</p>
                   {hint.algorithm ? <p className="alg">{hint.algorithm}</p> : null}
-                  {hint.algorithm ? (
-                    <button type="button" onClick={() => enqueue(hint.algorithm, prefersReduced() ? 16 : TURN_MS)}>
-                      Show the moves
-                    </button>
-                  ) : null}
                 </article>
               ) : null}
               {phase === "solved" ? (
@@ -479,6 +449,45 @@ export function CubeApp() {
               {status ? <p className="status">{status}</p> : null}
             </div>
           ) : null}
+          <div className="cube-column">
+          <CubeScene
+            cube={cube}
+            palette={palette}
+            anim={anim}
+            hintMove={hint && stage !== "solved" ? hint.algorithm.split(/\s+/)[0] ?? "" : ""}
+            onAnimEnd={finishAnim}
+            onTurn={(move) => enqueue(move, prefersReduced() ? 16 : TURN_MS)}
+            camera={camera}
+            onCamera={setCamera}
+          />
+          <div className="move-pad" aria-label="Face turns">
+            {MOVE_ROWS.map((face) => (
+              <div key={face} className="move-row">
+                <button type="button" onClick={() => enqueue(face, TURN_MS)}>{face}</button>
+                <button type="button" onClick={() => enqueue(`${face}'`, TURN_MS)}>{face}′</button>
+                <button type="button" onClick={() => enqueue(`${face}2`, TURN_MS)}>{face}2</button>
+              </div>
+            ))}
+          </div>
+          <div className="cube-turns">
+            <button type="button" onClick={() => orient("D", "U")}>Yellow on top</button>
+            <button type="button" onClick={() => orient("U", "D")}>White on bottom</button>
+            <button type="button" onClick={() => enqueue("y'", TURN_MS)}>Turn left</button>
+            <button type="button" onClick={() => enqueue("y", TURN_MS)}>Turn right</button>
+            <button type="button" onClick={() => setCamera({ x: -28, y: 34 })}>Reset view</button>
+          </div>
+          <p className="keys">Drag a sticker to turn that face. Drag outside the cube to look around. Keys U D L R F B, Shift for inverse, Alt for double.</p>
+          </div>
+        </section>
+
+        <aside className="panel">
+          <div className="tabs" role="tablist">
+            {(["solve", "learn", "board", "you"] as Tab[]).map((item) => (
+              <button key={item} type="button" role="tab" aria-selected={tab === item} className={tab === item ? "on" : ""} onClick={() => setTab(item)}>
+                {item === "solve" ? "Solve" : item === "learn" ? "Learn" : item === "board" ? "Leaderboard" : "You"}
+              </button>
+            ))}
+          </div>
 
           {tab === "learn" ? (
             <div className="tab-body lessons">
@@ -669,5 +678,24 @@ function AccountTab({
         </ul>
       )}
     </div>
+  );
+}
+
+function SunIcon() {
+  return (
+    <svg className="theme-icon" viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="12" cy="12" r="4" fill="currentColor" />
+      <g fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+        <path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.1 5.1l1.6 1.6M17.3 17.3l1.6 1.6M18.9 5.1l-1.6 1.6M6.7 17.3l-1.6 1.6" />
+      </g>
+    </svg>
+  );
+}
+
+function MoonIcon() {
+  return (
+    <svg className="theme-icon" viewBox="0 0 24 24" aria-hidden="true">
+      <path fill="currentColor" d="M14.5 3.2a8.2 8.2 0 1 0 6.3 13.2A7.2 7.2 0 0 1 14.5 3.2z" />
+    </svg>
   );
 }
