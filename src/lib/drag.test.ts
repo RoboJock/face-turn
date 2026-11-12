@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { Face } from "./cube";
-import { faceTurnFromDrag, projectCube } from "./drag";
+import { dragLayerDegrees, faceTurnFromDrag, LAYER_SNAP_DEGREES, projectCube } from "./drag";
 import { viewFromAngles } from "./view";
 
 const camera = viewFromAngles(-28, 34);
@@ -24,6 +24,14 @@ test("an upward drag still slides that edge upward", () => {
   assert.equal(faceTurnFromDrag("F", [-1, 0, 1], [0, -1], camera), "F");
   assert.equal(faceTurnFromDrag("U", [0, 1, 1], [0, -1], camera)[0], "U");
   assert.equal(faceTurnFromDrag("U", [1, 1, 0], [0, -1], camera)[0], "U");
+});
+
+test("a dragged layer reaches a quarter turn across about half the cube", () => {
+  const span = 200;
+  assert.ok(Math.abs(dragLayerDegrees(0.45 * span, span) - 90) < 0.001);
+  assert.ok(dragLayerDegrees(0.15 * span, span) >= LAYER_SNAP_DEGREES);
+  assert.equal(dragLayerDegrees(span, span), 120);
+  assert.equal(dragLayerDegrees(-span, span), -120);
 });
 
 test("a 4×4 inner drag turns that inner slice", () => {

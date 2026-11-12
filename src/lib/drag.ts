@@ -84,6 +84,20 @@ function nearestCapEdge(face: Face, camera: Mat3, order: CubeOrder): Vec {
  * slides with the pointer, instead of rolling the cube onto its side. A sideways
  * drag elsewhere slides that row; an upward drag slides the column.
  */
+/** A layer follows the pointer until this far, then it completes the quarter turn. */
+export const LAYER_SNAP_DEGREES = 30;
+
+/**
+ * How far a layer has turned, in degrees, after the pointer moves `alongPx`
+ * along the turn. A full quarter turn is 45% of the cube's width, and the
+ * layer stops at 120° while it is still following the pointer.
+ */
+export function dragLayerDegrees(alongPx: number, spanPx: number): number {
+  if (spanPx <= 0) return 0;
+  const degrees = (alongPx * 90) / (0.45 * spanPx);
+  return Math.max(-120, Math.min(120, degrees));
+}
+
 export function faceTurnFromDrag(
   face: Face,
   cubie: Vec,

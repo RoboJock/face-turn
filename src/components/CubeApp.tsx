@@ -45,7 +45,7 @@ const STAGE_LABEL: Record<Stage, string> = {
 };
 
 const MOVE_ROWS = ["U", "D", "L", "R", "F", "B"] as const;
-const TURN_MS = 460;
+const TURN_MS = 160;
 
 export function CubeApp() {
   const backend = useMemo<Backend>(() => createBackend(), []);
@@ -231,7 +231,7 @@ export function CubeApp() {
     setHint(null);
     setExplainHint(false);
     setPhaseBoth("scrambling");
-    enqueue(alg, prefersReduced() ? 16 : 140, false);
+    enqueue(alg, prefersReduced() ? 16 : 80, false);
   }
 
   function resetCube() {
@@ -530,7 +530,7 @@ export function CubeApp() {
             palette={palette}
             anim={anim}
             onAnimEnd={finishAnim}
-            onTurn={(move) => enqueue(move, prefersReduced() ? 16 : TURN_MS)}
+            onTurn={(move, duration) => enqueue(move, duration ?? (prefersReduced() ? 16 : TURN_MS))}
             camera={camera}
             onCamera={setCamera}
           />

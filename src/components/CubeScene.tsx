@@ -2,7 +2,7 @@
 
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { cubieTurnsWith, parseMove, stickerEntries, type CubeState, type Face } from "../lib/cube";
-import { faceTurnFromDrag } from "../lib/drag";
+import { dragLayerDegrees, faceTurnFromDrag, LAYER_SNAP_DEGREES } from "../lib/drag";
 import { orbitView, viewMatrix3d, type Mat3 } from "../lib/view";
 import type { Palette } from "../lib/palette";
 const FACES: { face: Face; pose: string }[] = [
@@ -44,27 +44,19 @@ function inSlice(order: CubeState["order"], turn: string, pos: [number, number, 
   return cubieTurnsWith(order, parseMove(turn).turn, pos);
 }
 
-function turnStyle(order: CubeState["order"], move: string, pos: [number, number, number], live: boolean): CSSProperties {
-  if (!live) return {};
+function cssAngle(move: string): number {
   const parsed = parseMove(move);
-  if (!inSlice(order, parsed.turn, pos)) return {};
   const direction = parsed.quarter === 2 ? 2 : parsed.quarter === 3 ? -1 : 1;
-  const angle = direction * 90 * (CLOCKWISE_SIGN[parsed.turn] ?? 1);
-  const axis = axisOf(parsed.turn);
-  const lift = wholeTurn(parsed.turn) ? 0 : 18;
-  const liftX = axis === "X" ? Math.sign(parsed.turn === "L" || parsed.turn === "l" ? -1 : 1) * lift : 0;
-  const liftY = axis === "Y" ? (parsed.turn === "D" || parsed.turn === "d" ? lift : -lift) : 0;
-  const liftZ = axis === "Z" ? (parsed.turn === "B" || parsed.turn === "b" ? -lift : lift) : 0;
-  return {
-    ["--angle" as string]: `${angle}deg`,
-    ["--lx" as string]: `${liftX}px`,
-    ["--ly" as string]: `${liftY}px`,
-    ["--lz" as string]: `${liftZ}px`,
-  };
+  return direction * 90 * (CLOCKWISE_SIGN[parsed.turn] ?? 1);
 }
 
-function wholeTurn(turn: string): boolean {
-  return turn === "x" || turn === "y" || turn === "z";
+function turnStyle(order: CubeState["order"], move: string, pos: [number, number, number], live: boolean): CSSProperties {
+  if (!live || !inSlice(order, parseMove(move).turn, pos)) return {};
+  return { ["--angle" as string]: `${cssAngle(move)}deg` };
+}
+
+function opposite(move: string): string {
+  return move.endsWith("'") ? move.slice(0, -1) : `${move}'`;
 }
 
 function isFaceCenter(face: Face, [x, y, z]: [number, number, number]): boolean {
@@ -82,7 +74,7 @@ function inkOn(hex: string): string {
   return luminance > 0.62 ? "#1c1915" : "#f7f4ee";
 }
 
-function cubieAt(target: HTMLElement): [number, number, number] | null {
+function cubieAt(target: Element): [number, number, number] | null {
   const cubie = target.closest(".cubie") as HTMLElement | null;
   const raw = cubie?.dataset.pos;
   if (!raw) return null;
@@ -103,7 +95,7 @@ export function CubeScene({
   palette: Palette;
   anim: { move: string; duration: number; token: number } | null;
   onAnimEnd: () => void;
-  onTurn: (move: string) => void;
+  onTurn: (move: string, duration?: number) => void;
   camera: Mat3;
   onCamera: (next: Mat3) => void;
 }) {
@@ -115,8 +107,15 @@ export function CubeScene({
   viewRef.current = camera;
   const orbitFrame = useRef(0);
   const drag = useRef<{ x: number; y: number; face: Face; cubie: [number, number, number] } | null>(null);
+  const follow = useRef<{ move: string; ux: number; uy: number; deg: number; settling: boolean } | null>(null);
+  const settleFrame = useRef(0);
+  const orderRef = useRef(cube.order);
+  orderRef.current = cube.order;
+  const spanRef = useRef(1);
   const endRef = useRef(onAnimEnd);
   endRef.current = onAnimEnd;
+  const turnRef = useRef(onTurn);
+  turnRef.current = onTurn;
 
   function paintCamera(next: Mat3) {
     const scene = sceneRef.current;
@@ -130,9 +129,56 @@ export function CubeScene({
     paintCamera(camera);
   }, [camera]);
 
+  useLayoutEffect(() => {
+    cancelAnimationFrame(settleFrame.current);
+    follow.current = null;
+    sceneRef.current?.querySelectorAll<HTMLElement>(".pivot").forEach((pivot) => {
+      pivot.style.transform = "";
+    });
+  }, [cube]);
+
+  function paintLayer(move: string, fraction: number) {
+    const scene = sceneRef.current;
+    if (!scene) return;
+    const angle = cssAngle(move) * fraction;
+    const axis = axisOf(parseMove(move).turn);
+    scene.querySelectorAll<HTMLElement>(".pivot").forEach((pivot) => {
+      const pos = cubieAt(pivot.querySelector(".cubie") ?? pivot);
+      const turning = pos !== null && inSlice(orderRef.current, parseMove(move).turn, pos);
+      pivot.style.transform = turning ? `rotate${axis}(${angle}deg)` : "";
+    });
+  }
+
+  function settleLayer(from: number, to: number, move: string | null) {
+    const active = follow.current;
+    if (!active) return;
+    active.settling = true;
+    const locked = active.move;
+    const started = performance.now();
+    const step = (now: number) => {
+      if (follow.current !== active) return;
+      const t = Math.min(1, (now - started) / 140);
+      const eased = 1 - (1 - t) ** 3;
+      const degrees = from + (to - from) * eased;
+      active.deg = degrees;
+      paintLayer(locked, degrees / 90);
+      if (t < 1) {
+        settleFrame.current = requestAnimationFrame(step);
+        return;
+      }
+      follow.current = null;
+      if (move) turnRef.current(move, 0);
+      else sceneRef.current?.querySelectorAll<HTMLElement>(".pivot").forEach((pivot) => {
+        pivot.style.transform = "";
+      });
+    };
+    settleFrame.current = requestAnimationFrame(step);
+  }
+
   useEffect(() => {
-    if (!anim) {
+    if (!anim || anim.duration <= 0) {
       setLive(false);
+      if (anim) endRef.current();
       return;
     }
     setLive(false);
@@ -147,7 +193,7 @@ export function CubeScene({
   }, [anim]);
 
   function pointerDown(event: React.PointerEvent) {
-    if (anim) return;
+    if (anim || follow.current) return;
     const target = event.target as HTMLElement;
     const onCube = Boolean(target.closest(".cubie"));
     if (onCube) {
@@ -174,21 +220,30 @@ export function CubeScene({
       orbitFrame.current = requestAnimationFrame(() => onCamera(next));
       return;
     }
-    if (!drag.current) return;
+    if (!drag.current || follow.current?.settling) return;
     const dx = event.clientX - drag.current.x;
     const dy = event.clientY - drag.current.y;
-    if (Math.hypot(dx, dy) < 18) return;
-    const move = faceTurnFromDrag(drag.current.face, drag.current.cubie, [dx, dy], camera, cube.order);
+    if (!follow.current) {
+      if (dx * dx + dy * dy < 25) return;
+      const move = faceTurnFromDrag(drag.current.face, drag.current.cubie, [dx, dy], camera, orderRef.current);
+      const length = Math.hypot(dx, dy);
+      follow.current = { move, ux: dx / length, uy: dy / length, deg: 0, settling: false };
+    }
+    const active = follow.current;
+    const along = dx * active.ux + dy * active.uy;
+    const degrees = dragLayerDegrees(along, spanRef.current);
+    active.deg = degrees;
+    paintLayer(active.move, degrees / 90);
+    if (Math.abs(degrees) < LAYER_SNAP_DEGREES) return;
     drag.current = null;
-    onTurn(move);
+    settleLayer(degrees, degrees > 0 ? 90 : -90, degrees > 0 ? active.move : opposite(active.move));
   }
 
   function pointerUp() {
+    const active = follow.current;
     drag.current = null;
-    if (!orbit.current || !sceneRef.current) {
-      orbit.current = null;
-      return;
-    }
+    if (active && !active.settling) settleLayer(active.deg, 0, null);
+    if (!orbit.current) return;
     orbit.current = null;
     onCamera(viewRef.current);
   }
@@ -197,6 +252,8 @@ export function CubeScene({
   const step = cube.order === 4 ? 54 : 70;
   const unit = step / pitch;
   const sticker = cube.order === 4 ? 46 : cube.order === 2 ? 78 : 62;
+  const outer = cube.order === 4 ? 3 : 1;
+  spanRef.current = outer * 2 * unit + sticker;
 
   return (
     <div

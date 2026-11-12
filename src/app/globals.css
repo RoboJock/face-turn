@@ -196,26 +196,23 @@ h2 { margin: 18px 0 8px; font-size: 16px; }
 }
 .pivot.turning {
   animation-duration: var(--dur);
-  animation-timing-function: linear;
+  animation-timing-function: ease-in-out;
   animation-fill-mode: forwards;
 }
 .pivot.turning.axis-X { animation-name: slice-x; }
 .pivot.turning.axis-Y { animation-name: slice-y; }
 .pivot.turning.axis-Z { animation-name: slice-z; }
 @keyframes slice-x {
-  0% { transform: translate3d(0, 0, 0) rotateX(0deg); animation-timing-function: cubic-bezier(0.16, 0.72, 0.24, 1); }
-  36% { transform: translate3d(var(--lx), var(--ly), var(--lz)) rotateX(calc(var(--angle) * 0.42)); animation-timing-function: cubic-bezier(0.12, 0.8, 0.18, 1.22); }
-  100% { transform: translate3d(0, 0, 0) rotateX(var(--angle)); }
+  from { transform: rotateX(0deg); }
+  to { transform: rotateX(var(--angle)); }
 }
 @keyframes slice-y {
-  0% { transform: translate3d(0, 0, 0) rotateY(0deg); animation-timing-function: cubic-bezier(0.16, 0.72, 0.24, 1); }
-  36% { transform: translate3d(var(--lx), var(--ly), var(--lz)) rotateY(calc(var(--angle) * 0.42)); animation-timing-function: cubic-bezier(0.12, 0.8, 0.18, 1.22); }
-  100% { transform: translate3d(0, 0, 0) rotateY(var(--angle)); }
+  from { transform: rotateY(0deg); }
+  to { transform: rotateY(var(--angle)); }
 }
 @keyframes slice-z {
-  0% { transform: translate3d(0, 0, 0) rotateZ(0deg); animation-timing-function: cubic-bezier(0.16, 0.72, 0.24, 1); }
-  36% { transform: translate3d(var(--lx), var(--ly), var(--lz)) rotateZ(calc(var(--angle) * 0.42)); animation-timing-function: cubic-bezier(0.12, 0.8, 0.18, 1.22); }
-  100% { transform: translate3d(0, 0, 0) rotateZ(var(--angle)); }
+  from { transform: rotateZ(0deg); }
+  to { transform: rotateZ(var(--angle)); }
 }
 .cubie {
   position: absolute;
