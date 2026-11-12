@@ -36,7 +36,7 @@ const CLOCKWISE_SIGN: Record<string, number> = {
 };
 
 function axisOf(turn: string): "X" | "Y" | "Z" {
-  if ("UuYy".includes(turn)) return "Y";
+  if ("UuDdYy".includes(turn)) return "Y";
   if ("FfZzBb".includes(turn) && "FfZz".includes(turn)) return "Z";
   if (turn === "B" || turn === "b") return "Z";
   return "X";
