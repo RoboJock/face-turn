@@ -539,11 +539,18 @@ export function CubeApp() {
 
           {tab === "learn" ? (
             <div ref={panelRef} tabIndex={-1} className="tab-body lessons">
-              <p>This is the beginner layer-by-layer method: white on the bottom, yellow on top. The hint button uses these same moves.</p>
+              <p className="learn-lead">This is the beginner layer-by-layer method: white on the bottom, yellow on top. The hint button uses these same moves.</p>
               <aside className="notation">
                 <h2>What the letters mean</h2>
-                <p>U is up, D is down, L is left, R is right, F is front, and B is back. A letter turns that face a quarter turn clockwise, as you look at the face.</p>
-                <p>An apostrophe turns the same face the other way. U′ is up, counterclockwise. A 2 is a half turn, so U2 spins the top halfway around.</p>
+                <ul className="notation-faces">
+                  <li><strong>U</strong> up</li>
+                  <li><strong>D</strong> down</li>
+                  <li><strong>L</strong> left</li>
+                  <li><strong>R</strong> right</li>
+                  <li><strong>F</strong> front</li>
+                  <li><strong>B</strong> back</li>
+                </ul>
+                <p><strong>U</strong> clockwise · <strong>U′</strong> the other way · <strong>U2</strong> half turn</p>
               </aside>
               <details className="lesson-group" open>
                 <summary>Text tutorials</summary>
