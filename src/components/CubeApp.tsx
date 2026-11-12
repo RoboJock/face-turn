@@ -550,7 +550,7 @@ export function CubeApp() {
                   <li><strong>F</strong> front</li>
                   <li><strong>B</strong> back</li>
                 </ul>
-                <p><strong>U</strong> clockwise · <strong>U′</strong> the other way · <strong>U2</strong> half turn</p>
+                <p><strong>U</strong> clockwise · <strong>U′</strong> counter-clockwise · <strong>U2</strong> half turn</p>
               </aside>
               <details className="lesson-group" open>
                 <summary>Text tutorials</summary>
