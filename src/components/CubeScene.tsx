@@ -113,7 +113,6 @@ export function CubeScene({
   onTurn,
   camera,
   onCamera,
-  hintMove,
 }: {
   cube: CubeState;
   palette: Palette;
@@ -122,7 +121,6 @@ export function CubeScene({
   onTurn: (move: string) => void;
   camera: Mat3;
   onCamera: (next: Mat3) => void;
-  hintMove?: string;
 }) {
   const stageRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<HTMLDivElement>(null);
@@ -264,39 +262,9 @@ export function CubeScene({
               </div>
             );
           })}
-          {hintMove ? <HintArrow move={hintMove} /> : null}
         </div>
       </div>
     </div>
   );
 }
 
-const ARROW_POSE: Record<string, string> = {
-  U: `translate3d(0, ${-STEP}px, 0) rotateX(90deg) translateZ(50px)`,
-  D: `translate3d(0, ${STEP}px, 0) rotateX(-90deg) translateZ(50px)`,
-  F: `translate3d(0, 0, ${STEP}px) translateZ(50px)`,
-  B: `translate3d(0, 0, ${-STEP}px) rotateY(180deg) translateZ(50px)`,
-  R: `translate3d(${STEP}px, 0, 0) rotateY(90deg) translateZ(50px)`,
-  L: `translate3d(${-STEP}px, 0, 0) rotateY(-90deg) translateZ(50px)`,
-  y: `translate3d(0, ${-STEP - 46}px, 0) rotateX(90deg)`,
-  x: `translate3d(${STEP + 46}px, 0, 0) rotateY(90deg)`,
-  z: `translate3d(0, 0, ${STEP + 46}px)`,
-};
-
-function HintArrow({ move }: { move: string }) {
-  const parsed = parseMove(move);
-  const pose = ARROW_POSE[parsed.turn] ?? ARROW_POSE[parsed.turn.toUpperCase()];
-  if (!pose) return null;
-  const counter = parsed.quarter === 3;
-  return (
-    <div className="hint-arrow" style={{ transform: pose }}>
-      <div className={counter ? "hint-glyph counter" : "hint-glyph"}>
-        <svg viewBox="0 0 64 64" aria-hidden="true">
-          <path d="M46 20a18 18 0 1 0 4 16" fill="none" stroke="currentColor" strokeWidth="5" strokeLinecap="round" />
-          <path d="M44 8l12 14-16 2z" fill="currentColor" />
-        </svg>
-        {parsed.quarter === 2 ? <span>2</span> : null}
-      </div>
-    </div>
-  );
-}

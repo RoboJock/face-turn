@@ -351,6 +351,10 @@ export function CubeApp() {
 
   const elapsed = finalMs ?? (running && startedAt !== null ? now - startedAt : 0);
   const stage = stageOf(cube);
+  const hintMove = hint && stage !== "solved" ? hint.algorithm.split(/\s+/)[0] ?? "" : "";
+  function hinted(token: string) {
+    return hintMove === token ? "hinted" : "";
+  }
 
   return (
     <div className="shell">
@@ -433,8 +437,8 @@ export function CubeApp() {
               <button type="button" onClick={askHint} disabled={hinting || stage === "solved"}>
                 {hinting ? "Looking…" : hint ? "Another hint" : "I'm stuck"}
               </button>
-              {hint && stage !== "solved" ? (
-                <p className="hint-note">An arrow on the cube shows the next move.</p>
+              {hint && stage !== "solved" && hintMove ? (
+                <p className="hint-note">The highlighted notation is the next move.</p>
               ) : null}
               {hint && stage !== "solved" && hint.algorithm ? (
                 <div className="row">
@@ -487,7 +491,6 @@ export function CubeApp() {
             cube={cube}
             palette={palette}
             anim={anim}
-            hintMove={hint && stage !== "solved" ? hint.algorithm.split(/\s+/)[0] ?? "" : ""}
             onAnimEnd={finishAnim}
             onTurn={(move) => enqueue(move, prefersReduced() ? 16 : TURN_MS)}
             camera={camera}
@@ -496,17 +499,17 @@ export function CubeApp() {
           <div className="move-pad" aria-label="Face turns">
             {MOVE_ROWS.map((face) => (
               <div key={face} className="move-row">
-                <button type="button" onClick={() => enqueue(face, TURN_MS)}>{face}</button>
-                <button type="button" onClick={() => enqueue(`${face}'`, TURN_MS)}>{face}′</button>
-                <button type="button" onClick={() => enqueue(`${face}2`, TURN_MS)}>{face}2</button>
+                <button type="button" className={hinted(face)} onClick={() => enqueue(face, TURN_MS)}>{face}</button>
+                <button type="button" className={hinted(`${face}'`)} onClick={() => enqueue(`${face}'`, TURN_MS)}>{face}′</button>
+                <button type="button" className={hinted(`${face}2`)} onClick={() => enqueue(`${face}2`, TURN_MS)}>{face}2</button>
               </div>
             ))}
           </div>
           <div className="cube-turns">
             <button type="button" onClick={() => orient("D", "U")}>Yellow on top</button>
             <button type="button" onClick={() => orient("U", "D")}>White on bottom</button>
-            <button type="button" onClick={() => enqueue("y'", TURN_MS)}>Turn left</button>
-            <button type="button" onClick={() => enqueue("y", TURN_MS)}>Turn right</button>
+            <button type="button" className={hinted("y'")} onClick={() => enqueue("y'", TURN_MS)}>Turn left</button>
+            <button type="button" className={hinted("y")} onClick={() => enqueue("y", TURN_MS)}>Turn right</button>
             <button type="button" onClick={() => setCamera(HOME_VIEW)}>Reset view</button>
           </div>
           <p className="keys">Drag a sticker to turn that face. Drag outside the cube to look around. Keys U D L R F B, Shift for inverse, Alt for double.</p>
