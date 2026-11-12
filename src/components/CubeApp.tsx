@@ -518,7 +518,7 @@ export function CubeApp() {
             <h2>Turns</h2>
             {solution.length === 0 ? <p>No turns yet.</p> : (
               <ol>
-                {solution.map((move, index) => (
+                {turnsForLog(solution).map((move, index) => (
                   <li key={`${index}-${move}`}>{move.replaceAll("'", "′")}</li>
                 ))}
               </ol>
@@ -624,6 +624,20 @@ export function CubeApp() {
       </div>
     </div>
   );
+}
+
+function turnsForLog(moves: string[]): string[] {
+  const shown: string[] = [];
+  for (let index = 0; index < moves.length; index += 1) {
+    const move = moves[index];
+    if (moves[index + 1] === move && !move.endsWith("2")) {
+      shown.push(`${move.replace(/['’]/g, "")}2`);
+      index += 1;
+      continue;
+    }
+    shown.push(move);
+  }
+  return shown;
 }
 
 function prefersReduced(): boolean {
