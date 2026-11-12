@@ -71,6 +71,7 @@ button.on { background: var(--on-bg); color: var(--on-fg); border-color: transpa
 
 .shell { max-width: 1180px; margin: 0 auto; padding: 28px 22px 48px; }
 .topbar { display: flex; justify-content: space-between; gap: 18px; align-items: flex-end; margin-bottom: 18px; }
+.title-line { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; }
 .mark {
   margin: 0 0 4px;
   font-family: var(--font-display), Georgia, serif;
@@ -121,7 +122,7 @@ h2 { margin: 18px 0 8px; font-size: 16px; }
   align-items: center;
 }
 .solve-side { padding: 22px 4px 22px 26px; display: flex; flex-direction: column; align-self: stretch; }
-.size-switch { display: flex; gap: 8px; margin-top: auto; padding-top: 22px; }
+.size-switch { display: flex; gap: 8px; }
 .solve-side .clock { font-size: 52px; }
 .cube-column { min-width: 0; }
 .cube-stack { min-width: 0; }

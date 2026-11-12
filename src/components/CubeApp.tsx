@@ -74,6 +74,8 @@ export function CubeApp() {
   const panelRef = useRef<HTMLDivElement>(null);
   const skipPanelFocus = useRef(true);
   const [hint, setHint] = useState<Hint | null>(null);
+  const hintRef = useRef<Hint | null>(null);
+  const [hintLit, setHintLit] = useState(false);
   const [explainHint, setExplainHint] = useState(false);
   const [hinting, setHinting] = useState(false);
   const [palette, setPalette] = useState<Palette>(DEFAULT_PALETTE);
@@ -182,6 +184,8 @@ export function CubeApp() {
     const next = applyMove(cubeRef.current, job.move);
     cubeRef.current = next;
     setCube(next);
+    const hintedMove = hintRef.current?.algorithm.split(/\s+/)[0] ?? "";
+    if (hintedMove && formatMove(parseMove(hintedMove)) === job.move) setHintLit(false);
     if (job.record) {
       setSolution((previous) => [...previous, job.move]);
       if (phaseRef.current === "ready") {
@@ -228,7 +232,7 @@ export function CubeApp() {
     setRunning(false);
     setStartedAt(null);
     startedRef.current = null;
-    setHint(null);
+    rememberHint(null);
     setExplainHint(false);
     setPhaseBoth("scrambling");
     enqueue(alg, prefersReduced() ? 16 : 80, false);
@@ -246,7 +250,7 @@ export function CubeApp() {
     setRunning(false);
     setStartedAt(null);
     startedRef.current = null;
-    setHint(null);
+    rememberHint(null);
     setStatus("");
     setCamera(HOME_VIEW);
     setPhaseBoth("idle");
@@ -260,7 +264,7 @@ export function CubeApp() {
     setCube(next);
     const remaining = solution.slice(0, -1);
     setSolution(remaining);
-    setHint(null);
+    rememberHint(null);
     if (remaining.length === 0 && scramble) {
       setRunning(false);
       setStartedAt(null);
@@ -284,7 +288,7 @@ export function CubeApp() {
   function askHint() {
     setHinting(true);
     window.setTimeout(() => {
-      setHint(nextHint(cubeRef.current, namesOf(palette)));
+      rememberHint(nextHint(cubeRef.current, namesOf(palette)));
       setExplainHint(false);
       setHinting(false);
     }, 20);
@@ -346,11 +350,17 @@ export function CubeApp() {
     setRunning(false);
     setStartedAt(null);
     startedRef.current = null;
-    setHint(null);
+    rememberHint(null);
     setExplainHint(false);
     setStatus("");
     setCamera(HOME_VIEW);
     setPhaseBoth("idle");
+  }
+
+  function rememberHint(next: Hint | null) {
+    hintRef.current = next;
+    setHint(next);
+    setHintLit(Boolean(next?.algorithm));
   }
 
   function orient(color: "U" | "D", face: "U" | "D") {
@@ -376,7 +386,7 @@ export function CubeApp() {
 
   const elapsed = finalMs ?? (running && startedAt !== null ? now - startedAt : 0);
   const stage = stageOf(cube);
-  const hintMove = hint && stage !== "solved" ? hint.algorithm.split(/\s+/)[0] ?? "" : "";
+  const hintMove = hint && hintLit && stage !== "solved" ? hint.algorithm.split(/\s+/)[0] ?? "" : "";
   function hinted(token: string) {
     return hintMove === token ? "hinted" : "";
   }
@@ -386,7 +396,16 @@ export function CubeApp() {
       <header className="topbar">
         <div>
           <p className="mark">Rubik's Cube</p>
-          <h1>Solve a cube.</h1>
+          <div className="title-line">
+            <h1>Solve a cube</h1>
+            <div className="size-switch" role="group" aria-label="Cube size">
+              {([2, 3, 4] as const).map((size) => (
+                <button key={size} type="button" className={order === size ? "on" : ""} onClick={() => chooseSize(size)}>
+                  {size}×{size}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
         <div className="top-actions">
           <button
@@ -510,13 +529,6 @@ export function CubeApp() {
                 )
               ) : null}
               {status ? <p className="status">{status}</p> : null}
-              <div className="size-switch" role="group" aria-label="Cube size">
-                {([2, 3, 4] as const).map((size) => (
-                  <button key={size} type="button" className={order === size ? "on" : ""} onClick={() => chooseSize(size)}>
-                    {size}×{size}
-                  </button>
-                ))}
-              </div>
             </div>
           <div className="cube-column">
           <div className="cube-row">
@@ -543,9 +555,9 @@ export function CubeApp() {
             <div className="move-pad inner-pad" aria-label="Inner slices">
               {MOVE_ROWS.map((face) => (
                 <div key={face} className="move-row">
-                  <button type="button" onClick={() => enqueue(face.toLowerCase(), TURN_MS)}>{face.toLowerCase()}</button>
-                  <button type="button" onClick={() => enqueue(`${face.toLowerCase()}'`, TURN_MS)}>{face.toLowerCase()}′</button>
-                  <button type="button" onClick={() => enqueue(`${face.toLowerCase()}2`, TURN_MS)}>{face.toLowerCase()}2</button>
+                  <button type="button" className={hinted(face.toLowerCase())} onClick={() => enqueue(face.toLowerCase(), TURN_MS)}>{face.toLowerCase()}</button>
+                  <button type="button" className={hinted(`${face.toLowerCase()}'`)} onClick={() => enqueue(`${face.toLowerCase()}'`, TURN_MS)}>{face.toLowerCase()}′</button>
+                  <button type="button" className={hinted(`${face.toLowerCase()}2`)} onClick={() => enqueue(`${face.toLowerCase()}2`, TURN_MS)}>{face.toLowerCase()}2</button>
                 </div>
               ))}
             </div>
