@@ -362,7 +362,7 @@ input[type="text"], input[type="email"], input[type="password"], .colors input[t
 .board em { font-family: var(--font-mono), ui-monospace, monospace; font-style: normal; }
 .history { list-style: none; padding: 0; }
 .history li { grid-template-columns: 1fr; }
-.colors { display: grid; grid-template-columns: repeat(auto-fill, 210px); row-gap: 28px; column-gap: 64px; justify-content: start; }
+.colors { display: grid; grid-template-columns: repeat(auto-fill, 210px); row-gap: 28px; column-gap: 40px; justify-content: start; }
 .colors label { grid-template-columns: 42px 140px; gap: 12px; margin: 0; align-items: center; }
 .colors input[type="color"] {
   width: 42px;
@@ -373,7 +373,7 @@ input[type="text"], input[type="email"], input[type="password"], .colors input[t
   background: transparent;
 }
 .colors input[type="text"] { width: 140px; }
-.presets { display: flex; flex-wrap: wrap; gap: 8px; }
+.presets { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 28px; }
 .fine { font-size: 13px; }
 
 @media (max-width: 860px) {
