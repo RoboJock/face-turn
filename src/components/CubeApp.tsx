@@ -13,6 +13,7 @@ import {
   replaySolved,
   restingCube,
   scrambleAlg,
+  type CubeOrder,
   type CubeState,
 } from "../lib/cube";
 import { nextHint, stageOf, STAGE_ORDER, type Hint, type Stage } from "../lib/hints";
@@ -65,6 +66,8 @@ export function CubeApp() {
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [finalMs, setFinalMs] = useState<number | null>(null);
   const [now, setNow] = useState(0);
+  const [order, setOrder] = useState<CubeOrder>(3);
+  const orderRef = useRef<CubeOrder>(3);
   const [tab, setTab] = useState<Tab>("solve");
   const solveRef = useRef<HTMLElement>(null);
   const panelShellRef = useRef<HTMLElement>(null);
@@ -216,8 +219,8 @@ export function CubeApp() {
 
   function dealScramble() {
     if (busy()) return;
-    const alg = scrambleAlg(20);
-    cubeRef.current = restingCube();
+    const alg = scrambleAlg(orderRef.current === 2 ? 11 : orderRef.current === 4 ? 36 : 20, Math.random, orderRef.current);
+    cubeRef.current = restingCube(orderRef.current);
     setCube(cubeRef.current);
     setScramble(alg);
     setSolution([]);
@@ -235,7 +238,7 @@ export function CubeApp() {
     queueRef.current = [];
     jobRef.current = null;
     setAnim(null);
-    cubeRef.current = restingCube();
+    cubeRef.current = restingCube(orderRef.current);
     setCube(cubeRef.current);
     setScramble(null);
     setSolution([]);
@@ -279,6 +282,10 @@ export function CubeApp() {
   }
 
   function askHint() {
+    if (orderRef.current !== 3) {
+      setStatus("Hints follow the 3×3.");
+      return;
+    }
     setHinting(true);
     window.setTimeout(() => {
       setHint(nextHint(cubeRef.current, namesOf(palette)));
@@ -290,7 +297,7 @@ export function CubeApp() {
   async function publish(onBoard: boolean) {
     if (!scramble || phase !== "solved") return;
     const moves = solution.join(" ");
-    if (!replaySolved(scramble, moves)) {
+    if (!replaySolved(scramble, moves, orderRef.current)) {
       setStatus("That solve did not replay. Scramble again and the timer will keep a clean record.");
       return;
     }
@@ -328,6 +335,28 @@ export function CubeApp() {
     if (user && !user.guest) void backend.saveColors(next).catch(() => undefined);
   }
 
+  function chooseSize(next: CubeOrder) {
+    if (next === orderRef.current || jobRef.current || queueRef.current.length > 0) return;
+    orderRef.current = next;
+    setOrder(next);
+    queueRef.current = [];
+    jobRef.current = null;
+    setAnim(null);
+    cubeRef.current = restingCube(next);
+    setCube(cubeRef.current);
+    setScramble(null);
+    setSolution([]);
+    setFinalMs(null);
+    setRunning(false);
+    setStartedAt(null);
+    startedRef.current = null;
+    setHint(null);
+    setExplainHint(false);
+    setStatus("");
+    setCamera(HOME_VIEW);
+    setPhaseBoth("idle");
+  }
+
   function orient(color: "U" | "D", face: "U" | "D") {
     if (jobRef.current || queueRef.current.length > 0) return;
     const alg = movesToPutColorOn(cubeRef.current, color, face);
@@ -350,7 +379,7 @@ export function CubeApp() {
   });
 
   const elapsed = finalMs ?? (running && startedAt !== null ? now - startedAt : 0);
-  const stage = stageOf(cube);
+  const stage = order === 3 ? stageOf(cube) : isSolved(cube) ? "solved" : "cross";
   const hintMove = hint && stage !== "solved" ? hint.algorithm.split(/\s+/)[0] ?? "" : "";
   function hinted(token: string) {
     return hintMove === token ? "hinted" : "";
@@ -361,7 +390,7 @@ export function CubeApp() {
       <header className="topbar">
         <div>
           <p className="mark">Rubik's Cube</p>
-          <h1>Solve a 3×3, with a hint when you want one.</h1>
+          <h1>Solve a cube.</h1>
         </div>
         <div className="top-actions">
           <button
@@ -428,13 +457,15 @@ export function CubeApp() {
                 <button type="button" onClick={resetCube}>Reset</button>
               </div>
               {scramble ? <p className="scramble">{scramble}</p> : null}
-              <div className="dots" aria-hidden="true">
-                {STAGE_ORDER.map((item) => (
-                  <span key={item} className={stage === "solved" || STAGE_ORDER.indexOf(item) < STAGE_ORDER.indexOf(stage as (typeof STAGE_ORDER)[number]) ? "dot filled" : stage === item ? "dot now" : "dot"} title={STAGE_LABEL[item]} />
-                ))}
-              </div>
-              <p className="stage-name">{stage === "solved" ? "Solved" : STAGE_LABEL[stage]}</p>
-              <button type="button" onClick={askHint} disabled={hinting || stage === "solved"}>
+              {order === 3 ? (
+                <div className="dots" aria-hidden="true">
+                  {STAGE_ORDER.map((item) => (
+                    <span key={item} className={stage === "solved" || STAGE_ORDER.indexOf(item) < STAGE_ORDER.indexOf(stage as (typeof STAGE_ORDER)[number]) ? "dot filled" : stage === item ? "dot now" : "dot"} title={STAGE_LABEL[item]} />
+                  ))}
+                </div>
+              ) : null}
+              <p className="stage-name">{stage === "solved" ? "Solved" : order === 3 ? STAGE_LABEL[stage] : "In progress"}</p>
+              <button type="button" onClick={askHint} disabled={hinting || stage === "solved" || order !== 3}>
                 {hinting ? "Looking…" : hint ? "Another hint" : "I'm stuck"}
               </button>
               {hint && stage !== "solved" && hintMove ? (
@@ -483,6 +514,13 @@ export function CubeApp() {
                 )
               ) : null}
               {status ? <p className="status">{status}</p> : null}
+              <div className="size-switch" role="group" aria-label="Cube size">
+                {([2, 3, 4] as const).map((size) => (
+                  <button key={size} type="button" className={order === size ? "on" : ""} onClick={() => chooseSize(size)}>
+                    {size}×{size}
+                  </button>
+                ))}
+              </div>
             </div>
           <div className="cube-column">
           <div className="cube-row">
@@ -505,6 +543,17 @@ export function CubeApp() {
               </div>
             ))}
           </div>
+          {order === 4 ? (
+            <div className="move-pad inner-pad" aria-label="Inner slices">
+              {MOVE_ROWS.map((face) => (
+                <div key={face} className="move-row">
+                  <button type="button" onClick={() => enqueue(face.toLowerCase(), TURN_MS)}>{face.toLowerCase()}</button>
+                  <button type="button" onClick={() => enqueue(`${face.toLowerCase()}'`, TURN_MS)}>{face.toLowerCase()}′</button>
+                  <button type="button" onClick={() => enqueue(`${face.toLowerCase()}2`, TURN_MS)}>{face.toLowerCase()}2</button>
+                </div>
+              ))}
+            </div>
+          ) : null}
           <div className="cube-turns">
             <button type="button" onClick={() => orient("D", "U")}>Yellow on top</button>
             <button type="button" onClick={() => orient("U", "D")}>White on bottom</button>

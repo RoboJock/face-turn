@@ -1,12 +1,10 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
-import { parseMove, stickerEntries, type CubeState, type Face } from "../lib/cube";
+import { cubieTurnsWith, parseMove, stickerEntries, type CubeState, type Face } from "../lib/cube";
 import { faceTurnFromDrag } from "../lib/drag";
 import { orbitView, viewMatrix3d, type Mat3 } from "../lib/view";
 import type { Palette } from "../lib/palette";
-
-const STEP = 70;
 const FACES: { face: Face; pose: string }[] = [
   { face: "U", pose: "rotateX(90deg) translateZ(calc(var(--s) / 2))" },
   { face: "D", pose: "rotateX(-90deg) translateZ(calc(var(--s) / 2))" },
@@ -42,28 +40,14 @@ function axisOf(turn: string): "X" | "Y" | "Z" {
   return "X";
 }
 
-function inSlice(turn: string, pos: [number, number, number]): boolean {
-  const [x, y, z] = pos;
-  if (turn === "x" || turn === "y" || turn === "z") return true;
-  if (turn === "U") return y === 1;
-  if (turn === "D") return y === -1;
-  if (turn === "F") return z === 1;
-  if (turn === "B") return z === -1;
-  if (turn === "R") return x === 1;
-  if (turn === "L") return x === -1;
-  if (turn === "u") return y !== -1;
-  if (turn === "d") return y !== 1;
-  if (turn === "f") return z !== -1;
-  if (turn === "b") return z !== 1;
-  if (turn === "r") return x !== -1;
-  if (turn === "l") return x !== 1;
-  return false;
+function inSlice(order: CubeState["order"], turn: string, pos: [number, number, number]): boolean {
+  return cubieTurnsWith(order, parseMove(turn).turn, pos);
 }
 
-function turnStyle(move: string, pos: [number, number, number], live: boolean): CSSProperties {
+function turnStyle(order: CubeState["order"], move: string, pos: [number, number, number], live: boolean): CSSProperties {
   if (!live) return {};
   const parsed = parseMove(move);
-  if (!inSlice(parsed.turn, pos)) return {};
+  if (!inSlice(order, parsed.turn, pos)) return {};
   const direction = parsed.quarter === 2 ? 2 : parsed.quarter === 3 ? -1 : 1;
   const angle = direction * 90 * (CLOCKWISE_SIGN[parsed.turn] ?? 1);
   const axis = axisOf(parsed.turn);
@@ -100,9 +84,10 @@ function inkOn(hex: string): string {
 
 function cubieAt(target: HTMLElement): [number, number, number] | null {
   const cubie = target.closest(".cubie") as HTMLElement | null;
-  const match = cubie?.style.transform.match(/translate3d\(([-\d.]+)px,\s*([-\d.]+)px,\s*([-\d.]+)px\)/);
-  if (!match) return null;
-  return [Math.round(Number(match[1]) / STEP), Math.round(-Number(match[2]) / STEP), Math.round(Number(match[3]) / STEP)];
+  const raw = cubie?.dataset.pos;
+  if (!raw) return null;
+  const [x, y, z] = raw.split(",").map(Number);
+  return [x, y, z];
 }
 
 export function CubeScene({
@@ -193,7 +178,7 @@ export function CubeScene({
     const dx = event.clientX - drag.current.x;
     const dy = event.clientY - drag.current.y;
     if (Math.hypot(dx, dy) < 18) return;
-    const move = faceTurnFromDrag(drag.current.face, drag.current.cubie, [dx, dy], camera);
+    const move = faceTurnFromDrag(drag.current.face, drag.current.cubie, [dx, dy], camera, cube.order);
     drag.current = null;
     onTurn(move);
   }
@@ -208,10 +193,16 @@ export function CubeScene({
     onCamera(viewRef.current);
   }
 
+  const pitch = cube.order === 3 ? 1 : 2;
+  const step = cube.order === 4 ? 54 : 70;
+  const unit = step / pitch;
+  const sticker = cube.order === 4 ? 46 : cube.order === 2 ? 78 : 62;
+
   return (
     <div
       ref={stageRef}
       className="stage"
+      style={{ ["--s" as string]: `${sticker}px` }}
       onPointerDown={pointerDown}
       onPointerMove={pointerMove}
       onPointerUp={pointerUp}
@@ -225,20 +216,21 @@ export function CubeScene({
           style={{ transform: viewMatrix3d(camera) }}
         >
           {cube.cubies.map((cubie) => {
-            const spinning = Boolean(anim && live && inSlice(parseMove(anim.move).turn, cubie.pos));
+            const spinning = Boolean(anim && live && inSlice(cube.order, parseMove(anim.move).turn, cubie.pos));
             const axis = spinning && anim ? axisOf(parseMove(anim.move).turn) : "Y";
             return (
               <div
                 key={cubie.id}
                 className={spinning ? `pivot turning axis-${axis}` : "pivot"}
                 style={{
-                  ...turnStyle(anim?.move ?? "", cubie.pos, spinning),
+                  ...turnStyle(cube.order, anim?.move ?? "", cubie.pos, spinning),
                   ["--dur" as string]: spinning && anim ? `${anim.duration}ms` : "0ms",
                 }}
               >
                 <div
                   className="cubie"
-                  style={{ transform: `translate3d(${cubie.pos[0] * STEP}px, ${-cubie.pos[1] * STEP}px, ${cubie.pos[2] * STEP}px)` }}
+                  data-pos={cubie.pos.join(",")}
+                  style={{ transform: `translate3d(${cubie.pos[0] * unit}px, ${-cubie.pos[1] * unit}px, ${cubie.pos[2] * unit}px)` }}
                 >
                   {FACES.map(({ face, pose }) => {
                     const color = stickerEntries(cubie).find(([dir]) => dir === face)?.[1];
@@ -252,7 +244,7 @@ export function CubeScene({
                             aria-label={isFaceCenter(face, cubie.pos) ? `${face} center, ${palette[color].name}` : `${palette[color].name} sticker`}
                             style={{ background: palette[color].hex, color: inkOn(palette[color].hex) }}
                           >
-                            {isFaceCenter(face, cubie.pos) ? <span className="face-mark">{face}</span> : null}
+                            {cube.order === 3 && isFaceCenter(face, cubie.pos) ? <span className="face-mark">{face}</span> : null}
                           </button>
                         ) : null}
                       </div>

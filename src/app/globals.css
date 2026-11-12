@@ -120,7 +120,8 @@ h2 { margin: 18px 0 8px; font-size: 16px; }
   column-gap: 40px;
   align-items: center;
 }
-.solve-side { padding: 22px 4px 22px 26px; }
+.solve-side { padding: 22px 4px 22px 26px; display: flex; flex-direction: column; align-self: stretch; }
+.size-switch { display: flex; gap: 8px; margin-top: auto; padding-top: 22px; }
 .solve-side .clock { font-size: 52px; }
 .cube-column { min-width: 0; }
 .cube-stack { min-width: 0; }

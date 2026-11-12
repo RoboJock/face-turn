@@ -8,7 +8,7 @@ const mono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["400", "500"], variabl
 
 export const metadata: Metadata = {
   title: "Rubik's Cube",
-  description: "Solve a 3×3 Rubik's Cube with tutorials, hints, an optional timer, and a leaderboard.",
+  description: "Solve a 2×2, 3×3, or 4×4 cube with tutorials, hints on the 3×3, an optional timer, and a leaderboard.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

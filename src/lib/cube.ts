@@ -31,7 +31,10 @@ export interface Cubie {
   stickers: StickerMap;
 }
 
+export type CubeOrder = 2 | 3 | 4;
+
 export interface CubeState {
+  order: CubeOrder;
   cubies: Cubie[];
 }
 
@@ -86,33 +89,40 @@ function remapStickers(stickers: StickerMap, face: Face): StickerMap {
 }
 
 /** Solved, held the way the lessons do: yellow on top, white on the bottom. */
-export function restingCube(): CubeState {
-  return applyMove(solvedCube(), "x2");
+export function restingCube(order: CubeOrder = 3): CubeState {
+  return applyMove(solvedCube(order), "x2");
 }
 
-export function solvedCube(): CubeState {
+export function outerIndex(order: CubeOrder): number {
+  return order === 4 ? 3 : 1;
+}
+
+export function solvedCube(order: CubeOrder = 3): CubeState {
+  const outer = outerIndex(order);
+  const coords = order === 2 ? [-1, 1] : order === 3 ? [-1, 0, 1] : [-3, -1, 1, 3];
   const cubies: Cubie[] = [];
   let id = 0;
-  for (const x of [-1, 0, 1]) {
-    for (const y of [-1, 0, 1]) {
-      for (const z of [-1, 0, 1]) {
-        if (x === 0 && y === 0 && z === 0) continue;
+  for (const x of coords) {
+    for (const y of coords) {
+      for (const z of coords) {
+        if (Math.abs(x) !== outer && Math.abs(y) !== outer && Math.abs(z) !== outer) continue;
         const stickers: StickerMap = {};
-        if (y === 1) stickers.U = "U";
-        if (y === -1) stickers.D = "D";
-        if (z === 1) stickers.F = "F";
-        if (z === -1) stickers.B = "B";
-        if (x === 1) stickers.R = "R";
-        if (x === -1) stickers.L = "L";
+        if (y === outer) stickers.U = "U";
+        if (y === -outer) stickers.D = "D";
+        if (z === outer) stickers.F = "F";
+        if (z === -outer) stickers.B = "B";
+        if (x === outer) stickers.R = "R";
+        if (x === -outer) stickers.L = "L";
         cubies.push({ id: id++, pos: [x, y, z], stickers });
       }
     }
   }
-  return { cubies };
+  return { order, cubies };
 }
 
 export function cloneCube(state: CubeState): CubeState {
   return {
+    order: state.order,
     cubies: state.cubies.map((cubie) => ({
       id: cubie.id,
       pos: [cubie.pos[0], cubie.pos[1], cubie.pos[2]],
@@ -135,29 +145,41 @@ function affectsAll(turn: CubeTurn): boolean {
   return turn === "x" || turn === "y" || turn === "z";
 }
 
-function inWide(turn: CubeTurn, pos: [number, number, number]): boolean {
-  const [x, y, z] = pos;
-  if (turn === "r") return x !== -1;
-  if (turn === "l") return x !== 1;
-  if (turn === "u") return y !== -1;
-  if (turn === "d") return y !== 1;
-  if (turn === "f") return z !== -1;
-  if (turn === "b") return z !== 1;
-  return false;
-}
-
 function isWide(turn: CubeTurn): turn is Wide {
   return turn === "r" || turn === "l" || turn === "u" || turn === "d" || turn === "f" || turn === "b";
 }
 
-function onFace(pos: [number, number, number], face: Face): boolean {
-  const [x, y, z] = pos;
-  if (face === "U") return y === 1;
-  if (face === "D") return y === -1;
-  if (face === "F") return z === 1;
-  if (face === "B") return z === -1;
-  if (face === "R") return x === 1;
-  return x === -1;
+function faceSign(face: Face): number {
+  return face === "D" || face === "B" || face === "L" ? -1 : 1;
+}
+
+function axisCoord(pos: [number, number, number], face: Face): number {
+  if (face === "U" || face === "D") return pos[1];
+  if (face === "F" || face === "B") return pos[2];
+  return pos[0];
+}
+
+function inWide(turn: CubeTurn, pos: [number, number, number], order: CubeOrder): boolean {
+  const face = turnFace(turn);
+  const outer = outerIndex(order);
+  return axisCoord(pos, face) !== -faceSign(face) * outer;
+}
+
+function onFace(pos: [number, number, number], face: Face, order: CubeOrder): boolean {
+  return axisCoord(pos, face) === faceSign(face) * outerIndex(order);
+}
+
+/** A 4×4 lowercase turn spins only the inner slice beside that face. On a 3×3 it stays a wide turn. */
+function onInnerSlice(turn: CubeTurn, pos: [number, number, number], order: CubeOrder): boolean {
+  const face = turnFace(turn);
+  const outer = outerIndex(order);
+  return axisCoord(pos, face) === faceSign(face) * (outer - 2);
+}
+
+export function cubieTurnsWith(order: CubeOrder, turn: CubeTurn, pos: [number, number, number]): boolean {
+  if (turn === "x" || turn === "y" || turn === "z") return true;
+  if (isWide(turn)) return order === 4 ? onInnerSlice(turn, pos, order) : inWide(turn, pos, order);
+  return onFace(pos, turn, order);
 }
 
 export function applyMove(state: CubeState, move: Move | string): CubeState {
@@ -168,9 +190,10 @@ export function applyMove(state: CubeState, move: Move | string): CubeState {
     const whole = affectsAll(parsed.turn);
     const wide = isWide(parsed.turn);
     current = {
+      order: current.order,
       cubies: current.cubies.map((cubie) => {
-        if (!whole && !wide && !onFace(cubie.pos, face)) return cubie;
-        if (wide && !inWide(parsed.turn, cubie.pos)) return cubie;
+        const turns = whole || (wide ? (current.order === 4 ? onInnerSlice(parsed.turn, cubie.pos, current.order) : inWide(parsed.turn, cubie.pos, current.order)) : onFace(cubie.pos, face, current.order));
+        if (!turns) return cubie;
         return {
           id: cubie.id,
           pos: rot90(face, cubie.pos),
@@ -220,14 +243,15 @@ export function invertAlg(alg: string): string {
   return formatAlg(parseAlg(alg).reverse().map(invertMove));
 }
 
-export function scrambleAlg(length = 20, rng: () => number = Math.random): string {
+export function scrambleAlg(length = 20, rng: () => number = Math.random, order: CubeOrder = 3): string {
+  const alphabet = order === 4 ? [...FACES, "u", "d", "l", "r", "f", "b"] : [...FACES];
   const moves: string[] = [];
   let previous = "";
   let beforeThat = "";
   while (moves.length < length) {
-    const face = FACES[Math.floor(rng() * FACES.length)];
-    if (face === previous) continue;
-    if (OPPOSITE[face] === previous && face === beforeThat) continue;
+    const face = alphabet[Math.floor(rng() * alphabet.length)];
+    if (face.toLowerCase() === previous.toLowerCase()) continue;
+    if (order === 3 && OPPOSITE[face as Face] === previous && face === beforeThat) continue;
     const suffix = ["", "'", "2"][Math.floor(rng() * 3)];
     moves.push(`${face}${suffix}`);
     beforeThat = previous;
@@ -259,8 +283,17 @@ export function centerColors(state: CubeState): Record<Face, Face> {
   return colors;
 }
 
-/** A cube is solved when every face is one color, matching that face's center. */
+/** A cube is solved when every face is one color, matching that face's center on a 3×3. */
 export function isSolved(state: CubeState): boolean {
+  if (state.order !== 3) {
+    const seen = new Set<Face>();
+    for (const face of FACES) {
+      const colors = state.cubies.flatMap((cubie) => (cubie.stickers[face] ? [cubie.stickers[face]] : []));
+      if (colors.length === 0 || colors.some((color) => color !== colors[0])) return false;
+      seen.add(colors[0]);
+    }
+    return seen.size === 6;
+  }
   const centers = centerColors(state);
   for (const cubie of state.cubies) {
     for (const [dir, color] of stickerEntries(cubie)) {
@@ -293,6 +326,7 @@ const ORIENT_MOVES = ["x", "x'", "x2", "y", "y'", "y2", "z", "z'", "z2"];
 
 /** Whole-cube turns that put a color's center on a face, preserving a solved cube. */
 export function movesToPutColorOn(state: CubeState, color: Face, face: Face): string {
+  if (state.order !== 3) return orientToward(state, color, face);
   if (centerFace(state, color) === face) return "";
   const queue: { state: CubeState; alg: string }[] = [{ state, alg: "" }];
   const seen = new Set<string>([encodeCenters(state)]);
@@ -312,6 +346,35 @@ export function movesToPutColorOn(state: CubeState, color: Face, face: Face): st
   throw new Error(`Cannot place ${color} on ${face}`);
 }
 
+function stickersOf(state: CubeState, face: Face, color: Face): number {
+  return state.cubies.filter((cubie) => cubie.stickers[face] === color).length;
+}
+
+function orientToward(state: CubeState, color: Face, face: Face): string {
+  let best = "";
+  let bestCount = stickersOf(state, face, color);
+  const queue: { state: CubeState; alg: string }[] = [{ state, alg: "" }];
+  const seen = new Set<string>([signature(state)]);
+  for (let index = 0; index < queue.length; index += 1) {
+    const current = queue[index];
+    if (current.alg.split(" ").filter(Boolean).length >= 2) continue;
+    for (const move of ORIENT_MOVES) {
+      const next = applyMove(current.state, move);
+      const key = signature(next);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const alg = `${current.alg} ${move}`.trim();
+      const count = stickersOf(next, face, color);
+      if (count > bestCount) {
+        best = alg;
+        bestCount = count;
+      }
+      queue.push({ state: next, alg });
+    }
+  }
+  return best;
+}
+
 function encodeCenters(state: CubeState): string {
   return FACES.map((face) => `${face}${centerFace(state, face)}`).join("");
 }
@@ -329,8 +392,8 @@ export function signature(state: CubeState): string {
     .join("|");
 }
 
-export function replaySolved(scramble: string, solution: string): boolean {
-  return isSolved(applyAlg(applyAlg(restingCube(), scramble), solution));
+export function replaySolved(scramble: string, solution: string, order: CubeOrder = 3): boolean {
+  return isSolved(applyAlg(applyAlg(restingCube(order), scramble), solution));
 }
 
 export function mulberry32(seed: number): () => number {

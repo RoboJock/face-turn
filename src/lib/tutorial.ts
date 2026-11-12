@@ -63,16 +63,32 @@ export const LESSONS: Lesson[] = [
   },
 ];
 
-export const REFERENCES: { title: string; href: string; note: string; videoId?: string }[] = [
+export const REFERENCES: { title: string; href: string; note: string; videoId?: string; size: 2 | 3 | 4 }[] = [
   {
     title: "J Perm — beginner 3×3 tutorial",
     href: "https://www.youtube.com/watch?v=7Ron6MN45LY",
     note: "A clear filmed walkthrough of this same layer-by-layer order. Pause it beside the cube.",
     videoId: "7Ron6MN45LY",
+    size: 3,
   },
   {
     title: "Ruwix — beginner method",
     href: "https://ruwix.com/the-rubiks-cube/how-to-solve-the-rubiks-cube-beginners-method/",
     note: "Diagrams for every stage if you want a still picture instead of a video.",
+    size: 3,
+  },
+  {
+    title: "J Perm — beginner 2×2 tutorial",
+    href: "https://www.youtube.com/watch?v=GANnG5a19kg",
+    note: "Build one layer, place the last corners, then finish the cube.",
+    videoId: "GANnG5a19kg",
+    size: 2,
+  },
+  {
+    title: "J Perm — 4×4 Yau method",
+    href: "https://www.youtube.com/watch?v=KWOZHbDdOeo",
+    note: "Solve the centers, pair the edges, then finish it like a 3×3.",
+    videoId: "KWOZHbDdOeo",
+    size: 4,
   },
 ];
