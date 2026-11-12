@@ -36,3 +36,16 @@ test("after tilting up, dragging right spins around the screen, not the cube", (
   const untilted = css(tilted, [0, 0, 1]);
   assert.ok(front[0] > untilted[0] + 0.2, `front should move right (${untilted[0]} -> ${front[0]})`);
 });
+
+test("a sideways drag keeps the cube upright", () => {
+  const spun = orbitView(viewFromAngles(-50, 20), 0, 80);
+  const up = css(spun, [0, 1, 0]);
+  assert.ok(Math.abs(up[0]) < 0.02, `up should stay vertical, x ${up[0]}`);
+  assert.ok(up[1] < 0, "up should point up the screen");
+});
+
+test("looking straight down is as far as the tilt goes", () => {
+  const turned = orbitView(viewFromAngles(-80, 10), -40, 0);
+  const up = css(turned, [0, 1, 0]);
+  assert.ok(Math.abs(up[1]) < 0.02, `up should sit on the horizon, y ${up[1]}`);
+});

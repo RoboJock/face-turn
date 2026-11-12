@@ -166,8 +166,8 @@ export function CubeScene({
     if (orbit.current) {
       const next = orbitView(
         orbit.current.view,
-        -(event.clientY - orbit.current.y) * 0.35,
-        (event.clientX - orbit.current.x) * 0.45,
+        -(event.clientY - orbit.current.y) * 0.4,
+        (event.clientX - orbit.current.x) * 0.4,
       );
       paintCamera(next);
       cancelAnimationFrame(orbitFrame.current);

@@ -36,12 +36,23 @@ export function viewFromAngles(pitch: number, yaw: number): Mat3 {
 
 export const HOME_VIEW = viewFromAngles(-28, 34);
 
+/** Pitch and yaw of a turntable view, the kind `viewFromAngles` builds. */
+export function orbitAngles(view: Mat3): { pitch: number; yaw: number } {
+  return {
+    pitch: (Math.atan2(view[7], view[4]) * 180) / Math.PI,
+    yaw: (Math.atan2(view[2], view[0]) * 180) / Math.PI,
+  };
+}
+
 /**
- * Orbit in screen space. Positive pitch lifts the front of the cube.
- * Positive yaw carries the front to the right.
+ * Turntable orbit. Positive pitch lifts the front of the cube.
+ * Positive yaw spins it to the right. Pitch stays between straight up and
+ * straight down, so the cube never rolls onto its side.
  */
 export function orbitView(view: Mat3, pitch: number, yaw: number): Mat3 {
-  return mul(mul(rotY(yaw), rotX(pitch)), view);
+  const angles = orbitAngles(view);
+  const nextPitch = Math.max(-90, Math.min(90, angles.pitch + pitch));
+  return viewFromAngles(nextPitch, angles.yaw + yaw);
 }
 
 export function applyView(view: Mat3, x: number, y: number, z: number): [number, number, number] {
