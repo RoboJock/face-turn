@@ -384,7 +384,7 @@ input[type="text"], input[type="email"], input[type="password"], .colors input[t
 .board em { font-family: var(--font-mono), ui-monospace, monospace; font-style: normal; }
 .history { list-style: none; padding: 0; }
 .history li { grid-template-columns: 1fr; }
-.colors { display: grid; grid-template-columns: repeat(auto-fill, 210px); gap: 12px 28px; justify-content: start; }
+.colors { display: grid; grid-template-columns: repeat(auto-fill, 210px); gap: 28px 28px; justify-content: start; }
 .colors label { grid-template-columns: 42px 140px; gap: 12px; margin: 0; align-items: center; }
 .colors input[type="color"] {
   width: 42px;
