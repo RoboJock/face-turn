@@ -1,12 +1,12 @@
 {
-  "name": "rubiks-cube",
+  "name": "puzzle-cube",
   "private": true,
   "version": "1.0.0",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "test": "tsx --test src/lib/cube.test.ts src/lib/hints.test.ts src/lib/drag.test.ts src/lib/view.test.ts"
+    "test": "tsx --test src/lib/cube.test.ts src/lib/hints.test.ts src/lib/drag.test.ts src/lib/view.test.ts src/lib/backend.test.ts"
   },
   "dependencies": {
     "firebase": "^11.10.0",

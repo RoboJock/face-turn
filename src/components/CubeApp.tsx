@@ -139,12 +139,17 @@ export function CubeApp() {
     return () => cancelAnimationFrame(frame);
   }, [running, startedAt]);
 
+  const refreshToken = useRef(0);
   const refreshLists = useCallback(async () => {
+    const token = ++refreshToken.current;
     try {
       const [nextBoard, nextHistory] = await Promise.all([backend.leaderboard(), backend.mySolves()]);
+      if (token !== refreshToken.current) return;
       setBoard(nextBoard);
       setHistory(nextHistory);
+      setStatus((current) => (current === "Missing or insufficient permissions." ? "" : current));
     } catch (error) {
+      if (token !== refreshToken.current) return;
       setStatus(error instanceof Error ? error.message : "Could not load solves.");
     }
   }, [backend]);
@@ -397,7 +402,7 @@ export function CubeApp() {
     <div className="shell">
       <header className="topbar">
         <div>
-          <p className="mark">Rubik's Cube</p>
+          <p className="mark">Puzzle Cube</p>
           <div className="title-line">
             <h1>Solve a cube</h1>
             <div className="size-switch" role="group" aria-label="Cube size">

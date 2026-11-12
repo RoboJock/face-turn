@@ -1,6 +1,6 @@
-# Rubik's Cube
+# Puzzle Cube
 
-A 3×3 Rubik’s Cube you can scramble and solve in the browser, with beginner lessons, hints, an optional timer, color choices, and a leaderboard.
+A puzzle cube you can scramble and solve in the browser, with beginner lessons, hints, an optional timer, color choices, and a leaderboard.
 
 Accounts and saved solves use Firebase Authentication and Cloud Firestore. GitHub is a sign-in provider through Firebase.
 
