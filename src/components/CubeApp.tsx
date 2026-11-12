@@ -66,6 +66,7 @@ export function CubeApp() {
   const [finalMs, setFinalMs] = useState<number | null>(null);
   const [now, setNow] = useState(0);
   const [tab, setTab] = useState<Tab>("solve");
+  const youRef = useRef<HTMLDivElement>(null);
   const [hint, setHint] = useState<Hint | null>(null);
   const [explainHint, setExplainHint] = useState(false);
   const [hinting, setHinting] = useState(false);
@@ -141,6 +142,14 @@ export function CubeApp() {
   useEffect(() => {
     if (tab === "board" || tab === "you") void refreshLists();
   }, [tab, refreshLists, user]);
+
+  useEffect(() => {
+    if (tab !== "you") return;
+    const section = youRef.current;
+    if (!section) return;
+    section.scrollIntoView({ behavior: "smooth", block: "start" });
+    section.focus({ preventScroll: true });
+  }, [tab]);
 
   function setPhaseBoth(next: Phase) {
     phaseRef.current = next;
@@ -369,8 +378,7 @@ export function CubeApp() {
       ) : null}
 
       <div className="layout">
-        <section className={`play ${tab === "solve" ? "with-solve" : ""}`}>
-          {tab === "solve" ? (
+        <section className="play with-solve">
             <div className="solve-side">
               <label className="track">
                 <input
@@ -450,9 +458,9 @@ export function CubeApp() {
               ) : null}
               {status ? <p className="status">{status}</p> : null}
             </div>
-          ) : null}
           <div className="cube-column">
           <div className="cube-row">
+          <div className="cube-stack">
           <CubeScene
             cube={cube}
             palette={palette}
@@ -463,17 +471,6 @@ export function CubeApp() {
             camera={camera}
             onCamera={setCamera}
           />
-          <aside className="turn-log" aria-label="Turn history">
-            <h2>Turns</h2>
-            {solution.length === 0 ? <p>No turns yet.</p> : (
-              <ol>
-                {solution.map((move, index) => (
-                  <li key={`${index}-${move}`}>{move.replaceAll("'", "′")}</li>
-                ))}
-              </ol>
-            )}
-          </aside>
-          </div>
           <div className="move-pad" aria-label="Face turns">
             {MOVE_ROWS.map((face) => (
               <div key={face} className="move-row">
@@ -491,6 +488,18 @@ export function CubeApp() {
             <button type="button" onClick={() => setCamera(HOME_VIEW)}>Reset view</button>
           </div>
           <p className="keys">Drag a sticker to turn that face. Drag outside the cube to look around. Keys U D L R F B, Shift for inverse, Alt for double.</p>
+          </div>
+          <aside className="turn-log" aria-label="Turn history">
+            <h2>Turns</h2>
+            {solution.length === 0 ? <p>No turns yet.</p> : (
+              <ol>
+                {solution.map((move, index) => (
+                  <li key={`${index}-${move}`}>{move.replaceAll("'", "′")}</li>
+                ))}
+              </ol>
+            )}
+          </aside>
+          </div>
           </div>
         </section>
 
@@ -545,6 +554,7 @@ export function CubeApp() {
           ) : null}
 
           {tab === "you" ? (
+            <div ref={youRef} tabIndex={-1} className="you-panel">
             <AccountTab
               backend={backend}
               user={user}
@@ -553,6 +563,7 @@ export function CubeApp() {
               onPalette={updatePalette}
               onStatus={setStatus}
             />
+            </div>
           ) : null}
         </aside>
       </div>

@@ -121,10 +121,11 @@ h2 { margin: 18px 0 8px; font-size: 16px; }
 .solve-side { padding: 22px 4px 22px 26px; }
 .solve-side .clock { font-size: 52px; }
 .cube-column { min-width: 0; }
+.cube-stack { min-width: 0; }
 .cube-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 148px;
-  align-items: stretch;
+  align-items: start;
 }
 .turn-log {
   margin: 22px 18px 8px 0;
@@ -288,6 +289,7 @@ h2 { margin: 18px 0 8px; font-size: 16px; }
 .keys { text-align: center; font-size: 13px; margin: 0; padding-bottom: 22px; }
 
 .panel { padding: 14px; }
+.you-panel { scroll-margin-top: 12px; outline: none; }
 .tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
 .tabs button { border-radius: 12px; padding: 8px 2px; font-size: 14px; }
 .tab-body { padding: 8px 6px 10px; }
