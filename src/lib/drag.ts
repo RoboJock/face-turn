@@ -29,6 +29,9 @@ const SLICE_VELOCITY: Record<string, (pos: Vec) => Vec> = {
   y: FACE_VELOCITY.U,
   x: FACE_VELOCITY.R,
   z: FACE_VELOCITY.F,
+  E: FACE_VELOCITY.D,
+  M: FACE_VELOCITY.L,
+  S: FACE_VELOCITY.F,
 };
 
 function slicesAt([x, y, z]: Vec, order: CubeOrder): string[] {
@@ -36,8 +39,8 @@ function slicesAt([x, y, z]: Vec, order: CubeOrder): string[] {
   const letter = (value: number, positive: string, negative: string, innerPositive: string, innerNegative: string, middle: string) => {
     if (value === outer) return positive;
     if (value === -outer) return negative;
-    if (order === 4 && value === outer - 2) return innerPositive;
-    if (order === 4 && value === -(outer - 2)) return innerNegative;
+    if ((order === 4 && Math.abs(value) === outer - 2) || (order === 5 && Math.abs(value) === 1)) return value > 0 ? innerPositive : innerNegative;
+    if (order === 5 && value === 0) return middle === "y" ? "E" : middle === "x" ? "M" : "S";
     return middle;
   };
   return [

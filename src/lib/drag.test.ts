@@ -34,6 +34,15 @@ test("a dragged layer reaches a quarter turn across about half the cube", () => 
   assert.equal(dragLayerDegrees(-span, span), -120);
 });
 
+test("a 5×5 drag turns the outer face, the inner slice, and the middle slice", () => {
+  assert.equal(faceTurnFromDrag("F", [0, 1, 2], [1, 0], camera, 5)[0], "u");
+  assert.equal(faceTurnFromDrag("F", [0, -1, 2], [1, 0], camera, 5)[0], "d");
+  assert.equal(faceTurnFromDrag("F", [0, 0, 2], [1, 0], camera, 5)[0], "E");
+  assert.equal(faceTurnFromDrag("F", [1, 0, 2], [0, -1], camera, 5)[0], "r");
+  assert.equal(faceTurnFromDrag("F", [0, 0, 2], [0, -1], camera, 5)[0], "M");
+  assert.equal(faceTurnFromDrag("F", [2, 0, 2], [0, -1], camera, 5)[0], "F");
+});
+
 test("a 4×4 inner drag turns that inner slice", () => {
   assert.equal(faceTurnFromDrag("F", [1, 1, 3], [1, 0], camera, 4), "u'");
   assert.equal(faceTurnFromDrag("F", [1, 1, 3], [-1, 0], camera, 4), "u");

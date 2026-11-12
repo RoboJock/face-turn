@@ -1,6 +1,7 @@
 export type Face = "U" | "D" | "F" | "B" | "L" | "R";
 export type Wide = "r" | "l" | "u" | "d" | "f" | "b";
-export type CubeTurn = Face | "x" | "y" | "z" | Wide;
+export type Middle = "E" | "M" | "S";
+export type CubeTurn = Face | "x" | "y" | "z" | Wide | Middle;
 
 export const FACES: Face[] = ["U", "D", "F", "B", "L", "R"];
 export const SIDE_FACES: Face[] = ["F", "R", "B", "L"];
@@ -31,7 +32,7 @@ export interface Cubie {
   stickers: StickerMap;
 }
 
-export type CubeOrder = 2 | 3 | 4;
+export type CubeOrder = 2 | 3 | 4 | 5;
 
 export interface CubeState {
   order: CubeOrder;
@@ -94,12 +95,14 @@ export function restingCube(order: CubeOrder = 3): CubeState {
 }
 
 export function outerIndex(order: CubeOrder): number {
-  return order === 4 ? 3 : 1;
+  if (order === 4) return 3;
+  if (order === 5) return 2;
+  return 1;
 }
 
 export function solvedCube(order: CubeOrder = 3): CubeState {
   const outer = outerIndex(order);
-  const coords = order === 2 ? [-1, 1] : order === 3 ? [-1, 0, 1] : [-3, -1, 1, 3];
+  const coords = order === 2 ? [-1, 1] : order === 3 ? [-1, 0, 1] : order === 4 ? [-3, -1, 1, 3] : [-2, -1, 0, 1, 2];
   const cubies: Cubie[] = [];
   let id = 0;
   for (const x of coords) {
@@ -132,13 +135,19 @@ export function cloneCube(state: CubeState): CubeState {
 }
 
 function turnFace(turn: CubeTurn): Face {
-  if (turn === "x" || turn === "r") return "R";
+  if (turn === "x" || turn === "r" || turn === "M") return "R";
   if (turn === "y" || turn === "u") return "U";
-  if (turn === "z" || turn === "f") return "F";
+  if (turn === "z" || turn === "f" || turn === "S") return "F";
   if (turn === "l") return "L";
-  if (turn === "d") return "D";
+  if (turn === "d" || turn === "E") return "D";
   if (turn === "b") return "B";
   return turn;
+}
+
+/** The face whose clockwise direction a middle slice follows. E matches D, M matches L, S matches F. */
+function rotationFace(turn: CubeTurn): Face {
+  if (turn === "M") return "L";
+  return turnFace(turn);
 }
 
 function affectsAll(turn: CubeTurn): boolean {
@@ -147,6 +156,10 @@ function affectsAll(turn: CubeTurn): boolean {
 
 function isWide(turn: CubeTurn): turn is Wide {
   return turn === "r" || turn === "l" || turn === "u" || turn === "d" || turn === "f" || turn === "b";
+}
+
+function isMiddle(turn: CubeTurn): turn is Middle {
+  return turn === "E" || turn === "M" || turn === "S";
 }
 
 function faceSign(face: Face): number {
@@ -169,16 +182,25 @@ function onFace(pos: [number, number, number], face: Face, order: CubeOrder): bo
   return axisCoord(pos, face) === faceSign(face) * outerIndex(order);
 }
 
-/** A 4×4 lowercase turn spins only the inner slice beside that face. On a 3×3 it stays a wide turn. */
+/** A lowercase turn on a 4×4 or 5×5 spins only the inner slice beside that face. On a 3×3 it stays a wide turn. */
 function onInnerSlice(turn: CubeTurn, pos: [number, number, number], order: CubeOrder): boolean {
   const face = turnFace(turn);
   const outer = outerIndex(order);
-  return axisCoord(pos, face) === faceSign(face) * (outer - 2);
+  const depth = order === 4 ? 2 : 1;
+  return axisCoord(pos, face) === faceSign(face) * (outer - depth);
+}
+
+function onMiddle(turn: CubeTurn, pos: [number, number, number], order: CubeOrder): boolean {
+  if (order !== 5) return false;
+  if (turn === "E") return pos[1] === 0;
+  if (turn === "M") return pos[0] === 0;
+  return pos[2] === 0;
 }
 
 export function cubieTurnsWith(order: CubeOrder, turn: CubeTurn, pos: [number, number, number]): boolean {
   if (turn === "x" || turn === "y" || turn === "z") return true;
-  if (isWide(turn)) return order === 4 ? onInnerSlice(turn, pos, order) : inWide(turn, pos, order);
+  if (isMiddle(turn)) return onMiddle(turn, pos, order);
+  if (isWide(turn)) return order >= 4 ? onInnerSlice(turn, pos, order) : inWide(turn, pos, order);
   return onFace(pos, turn, order);
 }
 
@@ -186,13 +208,14 @@ export function applyMove(state: CubeState, move: Move | string): CubeState {
   const parsed = typeof move === "string" ? parseMove(move) : move;
   let current = state;
   for (let i = 0; i < parsed.quarter; i += 1) {
-    const face = turnFace(parsed.turn);
+    const face = rotationFace(parsed.turn);
     const whole = affectsAll(parsed.turn);
     const wide = isWide(parsed.turn);
+    const middle = isMiddle(parsed.turn);
     current = {
       order: current.order,
       cubies: current.cubies.map((cubie) => {
-        const turns = whole || (wide ? (current.order === 4 ? onInnerSlice(parsed.turn, cubie.pos, current.order) : inWide(parsed.turn, cubie.pos, current.order)) : onFace(cubie.pos, face, current.order));
+        const turns = whole || (middle ? onMiddle(parsed.turn, cubie.pos, current.order) : wide ? (current.order >= 4 ? onInnerSlice(parsed.turn, cubie.pos, current.order) : inWide(parsed.turn, cubie.pos, current.order)) : onFace(cubie.pos, face, current.order));
         if (!turns) return cubie;
         return {
           id: cubie.id,
@@ -206,7 +229,7 @@ export function applyMove(state: CubeState, move: Move | string): CubeState {
 }
 
 export function parseMove(token: string): Move {
-  const match = token.trim().match(/^([URFDLBxyzrludfb])(2|'|’)?$/);
+  const match = token.trim().match(/^([URFDLBxyzrludfbEMS])(2|'|’)?$/);
   if (!match) throw new Error(`Unknown move: ${token}`);
   const suffix = match[2];
   const quarter = suffix === "2" ? 2 : suffix === "'" || suffix === "’" ? 3 : 1;
@@ -244,7 +267,7 @@ export function invertAlg(alg: string): string {
 }
 
 export function scrambleAlg(length = 20, rng: () => number = Math.random, order: CubeOrder = 3): string {
-  const alphabet = order === 4 ? [...FACES, "u", "d", "l", "r", "f", "b"] : [...FACES];
+  const alphabet = order === 4 ? [...FACES, "u", "d", "l", "r", "f", "b"] : order === 5 ? [...FACES, "u", "d", "l", "r", "f", "b", "E", "M", "S"] : [...FACES];
   const moves: string[] = [];
   let previous = "";
   let beforeThat = "";

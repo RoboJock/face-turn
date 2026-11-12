@@ -82,17 +82,24 @@ test("orientation search puts yellow on top", () => {
   assert.equal(isSolved(turned), true);
 });
 
-test("a 2×2 and a 4×4 solve and undo like the 3×3", () => {
-  for (const order of [2, 4] as const) {
+test("a 2×2, a 4×4, and a 5×5 solve and undo like the 3×3", () => {
+  for (const order of [2, 4, 5] as const) {
     const solved = solvedCube(order);
     assert.equal(isSolved(solved), true);
     assert.equal(isSolved(applyAlg(solved, "U U U U")), true);
     assert.equal(isSolved(applyAlg(solved, "R U R' U' U R U' R'")), true);
-    const scramble = scrambleAlg(order === 2 ? 8 : 20, mulberry32(order), order);
+    const scramble = scrambleAlg(order === 2 ? 8 : order === 5 ? 40 : 20, mulberry32(order), order);
     assert.equal(isSolved(applyAlg(solved, scramble)), false);
     assert.equal(isSolved(applyAlg(applyAlg(solved, scramble), invertAlg(scramble))), true);
   }
   const inner = applyMove(solvedCube(4), "u");
   assert.equal(isSolved(inner), false);
   assert.equal(isSolved(applyAlg(inner, "u'")), true);
+  const five = solvedCube(5);
+  assert.equal(five.cubies.length, 98);
+  for (const move of ["u", "r", "f", "E", "M", "S"]) {
+    assert.equal(isSolved(applyMove(five, move)), false);
+    assert.equal(isSolved(applyAlg(five, `${move} ${move} ${move} ${move}`)), true);
+    assert.equal(isSolved(applyAlg(five, `${move} ${move}'`)), true);
+  }
 });

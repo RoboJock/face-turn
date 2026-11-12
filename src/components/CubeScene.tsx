@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
-import { cubieTurnsWith, parseMove, stickerEntries, type CubeState, type Face } from "../lib/cube";
+import { cubieTurnsWith, outerIndex, parseMove, stickerEntries, type CubeState, type Face } from "../lib/cube";
 import { dragLayerDegrees, faceTurnFromDrag, LAYER_SNAP_DEGREES } from "../lib/drag";
 import { orbitView, viewMatrix3d, type Mat3 } from "../lib/view";
 import type { Palette } from "../lib/palette";
@@ -31,12 +31,14 @@ const CLOCKWISE_SIGN: Record<string, number> = {
   b: -1,
   r: 1,
   l: -1,
+  E: 1,
+  M: -1,
+  S: 1,
 };
 
 function axisOf(turn: string): "X" | "Y" | "Z" {
-  if ("UuDdYy".includes(turn)) return "Y";
-  if ("FfZzBb".includes(turn) && "FfZz".includes(turn)) return "Z";
-  if (turn === "B" || turn === "b") return "Z";
+  if ("UuDdYyEe".includes(turn)) return "Y";
+  if ("FfZzSs".includes(turn) || turn === "B" || turn === "b") return "Z";
   return "X";
 }
 
@@ -248,11 +250,11 @@ export function CubeScene({
     onCamera(viewRef.current);
   }
 
-  const pitch = cube.order === 3 ? 1 : 2;
-  const step = cube.order === 4 ? 54 : 70;
+  const pitch = cube.order === 3 || cube.order === 5 ? 1 : 2;
+  const step = cube.order === 5 ? 42 : cube.order === 4 ? 54 : 70;
   const unit = step / pitch;
-  const sticker = cube.order === 4 ? 46 : cube.order === 2 ? 78 : 62;
-  const outer = cube.order === 4 ? 3 : 1;
+  const sticker = cube.order === 5 ? 38 : cube.order === 4 ? 46 : cube.order === 2 ? 78 : 62;
+  const outer = outerIndex(cube.order);
   spanRef.current = outer * 2 * unit + sticker;
 
   return (

@@ -76,6 +76,7 @@ export function CubeApp() {
   const [hint, setHint] = useState<Hint | null>(null);
   const hintRef = useRef<Hint | null>(null);
   const [hintLit, setHintLit] = useState(false);
+  const [notation, setNotation] = useState(true);
   const [explainHint, setExplainHint] = useState(false);
   const [hinting, setHinting] = useState(false);
   const [palette, setPalette] = useState<Palette>(DEFAULT_PALETTE);
@@ -107,6 +108,7 @@ export function CubeApp() {
       trackRef.current = false;
       setTrack(false);
     }
+    if (localStorage.getItem("faceturn-notation") === "off") setNotation(false);
   }, []);
 
   useEffect(() => {
@@ -223,7 +225,7 @@ export function CubeApp() {
 
   function dealScramble() {
     if (busy()) return;
-    const alg = scrambleAlg(orderRef.current === 2 ? 11 : orderRef.current === 4 ? 36 : 20, Math.random, orderRef.current);
+    const alg = scrambleAlg(orderRef.current === 2 ? 11 : orderRef.current === 4 ? 36 : orderRef.current === 5 ? 60 : 20, Math.random, orderRef.current);
     cubeRef.current = restingCube(orderRef.current);
     setCube(cubeRef.current);
     setScramble(alg);
@@ -399,7 +401,7 @@ export function CubeApp() {
           <div className="title-line">
             <h1>Solve a cube</h1>
             <div className="size-switch" role="group" aria-label="Cube size">
-              {([2, 3, 4] as const).map((size) => (
+              {([2, 3, 4, 5] as const).map((size) => (
                 <button key={size} type="button" className={order === size ? "on" : ""} onClick={() => chooseSize(size)}>
                   {size}×{size}
                 </button>
@@ -542,6 +544,19 @@ export function CubeApp() {
             camera={camera}
             onCamera={setCamera}
           />
+          <div className="notation-bar">
+            <button
+              type="button"
+              onClick={() => {
+                const next = !notation;
+                setNotation(next);
+                localStorage.setItem("faceturn-notation", next ? "on" : "off");
+              }}
+            >
+              {notation ? "Hide notation" : "Show notation"}
+            </button>
+          </div>
+          {notation ? (
           <div className="move-pad" aria-label="Face turns">
             {MOVE_ROWS.map((face) => (
               <div key={face} className="move-row">
@@ -551,13 +566,25 @@ export function CubeApp() {
               </div>
             ))}
           </div>
-          {order === 4 ? (
+          ) : null}
+          {notation && (order === 4 || order === 5) ? (
             <div className="move-pad inner-pad" aria-label="Inner slices">
               {MOVE_ROWS.map((face) => (
                 <div key={face} className="move-row">
                   <button type="button" className={hinted(face.toLowerCase())} onClick={() => enqueue(face.toLowerCase(), TURN_MS)}>{face.toLowerCase()}</button>
                   <button type="button" className={hinted(`${face.toLowerCase()}'`)} onClick={() => enqueue(`${face.toLowerCase()}'`, TURN_MS)}>{face.toLowerCase()}′</button>
                   <button type="button" className={hinted(`${face.toLowerCase()}2`)} onClick={() => enqueue(`${face.toLowerCase()}2`, TURN_MS)}>{face.toLowerCase()}2</button>
+                </div>
+              ))}
+            </div>
+          ) : null}
+          {notation && order === 5 ? (
+            <div className="move-pad middle-pad" aria-label="Middle slices">
+              {(["E", "M", "S"] as const).map((face) => (
+                <div key={face} className="move-row">
+                  <button type="button" className={hinted(face)} onClick={() => enqueue(face, TURN_MS)}>{face}</button>
+                  <button type="button" className={hinted(`${face}'`)} onClick={() => enqueue(`${face}'`, TURN_MS)}>{face}′</button>
+                  <button type="button" className={hinted(`${face}2`)} onClick={() => enqueue(`${face}2`, TURN_MS)}>{face}2</button>
                 </div>
               ))}
             </div>
@@ -569,7 +596,7 @@ export function CubeApp() {
             <button type="button" className={hinted("y")} onClick={() => enqueue("y", TURN_MS)}>Turn right</button>
             <button type="button" onClick={() => setCamera(HOME_VIEW)}>Reset view</button>
           </div>
-          <p className="keys">Drag a sticker to turn that face. Drag outside the cube to look around. Keys U D L R F B, Shift for inverse, Alt for double.</p>
+          {notation ? <p className="keys">Drag a sticker to turn that layer. Drag outside the cube to look around. Keys U D L R F B, Shift for inverse, Alt for double.</p> : null}
           </div>
           <aside className="turn-log" aria-label="Turn history">
             <h2>Turns</h2>

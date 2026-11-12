@@ -29,6 +29,23 @@ test("hints solve a 2×2 and a 4×4", () => {
   }
 });
 
+test("hints solve a 5×5", () => {
+  for (const seed of [8]) {
+    const scramble = scrambleAlg(30, mulberry32(seed), 5);
+    let state = applyAlg(solvedCube(5), scramble);
+    const seen = new Set<string>();
+    for (let step = 0; step < 240 && !isSolved(state); step += 1) {
+      const hint = nextHint(state);
+      assert.notEqual(hint.algorithm, "", `seed ${seed} stuck at ${hint.title} ${hint.progress}`);
+      const key = `${signature(state)} ${hint.algorithm}`;
+      assert.equal(seen.has(key), false, `seed ${seed} repeated ${hint.title}`);
+      seen.add(key);
+      state = applyAlg(state, hint.algorithm);
+    }
+    assert.equal(isSolved(state), true, `seed ${seed} did not finish`);
+  }
+});
+
 test("hints solve scrambled cubes", () => {
   for (let seed = 1; seed <= 20; seed += 1) {
     const scramble = scrambleAlg(20, mulberry32(seed));

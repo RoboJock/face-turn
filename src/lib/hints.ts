@@ -13,6 +13,7 @@ import {
   type Face,
 } from "./cube";
 import { pocketHint } from "./pocket";
+import { professorHint } from "./professor";
 import { revengeHint } from "./revenge";
 
 export const COLOR_WORDS: Record<Face, string> = {
@@ -453,6 +454,7 @@ function faceHint(state: CubeState, names: Record<Face, string>): Hint {
 export function nextHint(state: CubeState, names: Record<Face, string> = COLOR_WORDS): Hint {
   if (state.order === 2) return pocketHint(state, names);
   if (state.order === 4) return revengeHint(state, names, faceHint);
+  if (state.order === 5) return professorHint(state, names, faceHint);
   return faceHint(state, names);
 }
 
