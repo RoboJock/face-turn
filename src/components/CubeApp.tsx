@@ -630,7 +630,7 @@ function turnsForLog(moves: string[]): string[] {
   const shown: string[] = [];
   for (let index = 0; index < moves.length; index += 1) {
     const move = moves[index];
-    if (moves[index + 1] === move && !move.endsWith("2")) {
+    if (moves[index + 1] === move && !move.endsWith("2") && !move.endsWith("'") && !move.endsWith("’")) {
       shown.push(`${move.replace(/['’]/g, "")}2`);
       index += 1;
       continue;
