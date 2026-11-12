@@ -66,7 +66,10 @@ export function CubeApp() {
   const [finalMs, setFinalMs] = useState<number | null>(null);
   const [now, setNow] = useState(0);
   const [tab, setTab] = useState<Tab>("solve");
-  const youRef = useRef<HTMLDivElement>(null);
+  const solveRef = useRef<HTMLElement>(null);
+  const panelShellRef = useRef<HTMLElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const skipPanelFocus = useRef(true);
   const [hint, setHint] = useState<Hint | null>(null);
   const [explainHint, setExplainHint] = useState(false);
   const [hinting, setHinting] = useState(false);
@@ -144,11 +147,15 @@ export function CubeApp() {
   }, [tab, refreshLists, user]);
 
   useEffect(() => {
-    if (tab !== "you") return;
-    const section = youRef.current;
-    if (!section) return;
-    section.scrollIntoView({ behavior: "smooth", block: "start" });
-    section.focus({ preventScroll: true });
+    if (skipPanelFocus.current) {
+      skipPanelFocus.current = false;
+      return;
+    }
+    const section = tab === "solve" ? solveRef.current : panelShellRef.current;
+    const focusTarget = tab === "solve" ? solveRef.current : panelRef.current;
+    if (!section || !focusTarget) return;
+    section.scrollIntoView({ behavior: "auto", block: "start" });
+    focusTarget.focus({ preventScroll: true });
   }, [tab]);
 
   function setPhaseBoth(next: Phase) {
@@ -289,6 +296,11 @@ export function CubeApp() {
     }
     const name = (boardName || user?.name || "").trim();
     const timed = track && finalMs !== null;
+    if (onBoard && (!user || user.guest)) {
+      setStatus("Sign in to add a time to the leaderboard.");
+      setTab("you");
+      return;
+    }
     if (onBoard && (!timed || finalMs === null || finalMs < 1000)) {
       setStatus("Leaderboard times start at 1.00 so an accidental tap stays off the board.");
       return;
@@ -378,7 +390,7 @@ export function CubeApp() {
       ) : null}
 
       <div className="layout">
-        <section className="play with-solve">
+        <section ref={solveRef} tabIndex={-1} className="play with-solve">
             <div className="solve-side">
               <label className="track">
                 <input
@@ -439,6 +451,7 @@ export function CubeApp() {
                 </article>
               ) : null}
               {phase === "solved" ? (
+                user && !user.guest ? (
                 <form
                   className="save-solve"
                   onSubmit={(event) => {
@@ -448,13 +461,22 @@ export function CubeApp() {
                 >
                   <label>
                     Name on the board
-                    <input value={boardName} onChange={(event) => setBoardName(event.target.value)} placeholder={user?.guest ? "Your name" : user?.name ?? "Your name"} maxLength={24} />
+                    <input value={boardName} onChange={(event) => setBoardName(event.target.value)} placeholder={user.name} maxLength={24} />
                   </label>
                   <div className="row">
                     <button type="submit" className="primary" disabled={!track || finalMs === null}>Add to leaderboard</button>
                     <button type="button" onClick={() => void publish(false)}>Save privately</button>
                   </div>
                 </form>
+                ) : (
+                <div className="save-solve">
+                  <p>Sign in to put this time on the leaderboard.</p>
+                  <div className="row">
+                    <button type="button" className="primary" onClick={() => setTab("you")}>Sign in</button>
+                    <button type="button" onClick={() => void publish(false)}>Save privately</button>
+                  </div>
+                </div>
+                )
               ) : null}
               {status ? <p className="status">{status}</p> : null}
             </div>
@@ -503,7 +525,7 @@ export function CubeApp() {
           </div>
         </section>
 
-        <aside className="panel">
+        <aside ref={panelShellRef} className="panel">
           <div className="tabs" role="tablist">
             {(["solve", "learn", "board", "you"] as Tab[]).map((item) => (
               <button key={item} type="button" role="tab" aria-selected={tab === item} className={tab === item ? "on" : ""} onClick={() => setTab(item)}>
@@ -513,31 +535,54 @@ export function CubeApp() {
           </div>
 
           {tab === "learn" ? (
-            <div className="tab-body lessons">
+            <div ref={panelRef} tabIndex={-1} className="tab-body lessons">
               <p>This is the beginner layer-by-layer method: white on the bottom, yellow on top. The hint button uses these same moves.</p>
-              {LESSONS.map((lesson) => (
-                <article key={lesson.title}>
-                  <h2>{lesson.title}</h2>
-                  {lesson.body.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
-                  {lesson.algorithm ? <p className="alg">{lesson.algorithm}</p> : null}
-                </article>
-              ))}
-              <h2>Lessons other people use</h2>
-              <ul className="refs">
-                {REFERENCES.map((link) => (
-                  <li key={link.href}>
-                    <a href={link.href} target="_blank" rel="noreferrer">{link.title}</a>
-                    <span>{link.note}</span>
-                  </li>
+              <aside className="notation">
+                <h2>What the letters mean</h2>
+                <p>U is up, D is down, L is left, R is right, F is front, and B is back. A letter turns that face a quarter turn clockwise, as you look at the face.</p>
+                <p>An apostrophe turns the same face the other way. U′ is up, counterclockwise. A 2 is a half turn, so U2 spins the top halfway around.</p>
+              </aside>
+              <details className="lesson-group" open>
+                <summary>Text tutorials</summary>
+                {LESSONS.map((lesson) => (
+                  <article key={lesson.title}>
+                    <details>
+                      <summary>{lesson.title}</summary>
+                      {lesson.body.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
+                      {lesson.algorithm ? <p className="alg">{lesson.algorithm}</p> : null}
+                    </details>
+                  </article>
                 ))}
-              </ul>
+                <ul className="refs">
+                  {REFERENCES.filter((link) => !link.videoId).map((link) => (
+                    <li key={link.href}>
+                      <a href={link.href} target="_blank" rel="noreferrer">{link.title}</a>
+                      <span>{link.note}</span>
+                    </li>
+                  ))}
+                </ul>
+              </details>
+              <details className="lesson-group" open>
+                <summary>Video tutorials</summary>
+                <div className="video-list">
+                  {REFERENCES.filter((link) => link.videoId).map((link) => (
+                    <a key={link.href} className="video-card" href={link.href} target="_blank" rel="noreferrer">
+                      <img src={`https://i.ytimg.com/vi/${link.videoId}/hqdefault.jpg`} alt="" width={168} height={94} />
+                      <span>
+                        <strong>{link.title}</strong>
+                        <span>{link.note}</span>
+                      </span>
+                    </a>
+                  ))}
+                </div>
+              </details>
             </div>
           ) : null}
 
           {tab === "board" ? (
-            <div className="tab-body">
+            <div ref={panelRef} tabIndex={-1} className="tab-body">
               <h2>Leaderboard</h2>
-              <p>{backend.mode === "local" ? "Times saved in this browser." : "Times saved in Firebase."} A solve is added only after the cube is finished with the timer on.</p>
+              <p>{backend.mode === "local" ? "Times saved in this browser." : "Times saved in Firebase."} A solve is added only after the cube is finished with the timer on, and only from a signed-in account.</p>
               {board.length === 0 ? <p>No times yet. Finish a timed scramble and add it.</p> : (
                 <ol className="board">
                   {board.map((entry, index) => (
@@ -554,7 +599,7 @@ export function CubeApp() {
           ) : null}
 
           {tab === "you" ? (
-            <div ref={youRef} tabIndex={-1} className="you-panel">
+            <div ref={panelRef} tabIndex={-1} className="you-panel">
             <AccountTab
               backend={backend}
               user={user}
@@ -614,7 +659,7 @@ function AccountTab({
       <h2>{user?.guest ? "Guest" : user?.name ?? "You"}</h2>
       <p>
         {user?.guest
-          ? "You can solve and post a time without an account. Create one if you want the solves kept under your name."
+          ? "You can practice as a guest. Sign in before a time can go on the leaderboard."
           : user
             ? "Solves below stay on this account."
             : "Starting a guest session…"}
@@ -651,16 +696,6 @@ function AccountTab({
             <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} required minLength={8} autoComplete={mode === "create" ? "new-password" : "current-password"} />
           </label>
           <button type="submit" className="primary">{mode === "create" ? "Create account" : "Sign in"}</button>
-          <button
-            type="button"
-            onClick={() => {
-              void backend.signInGitHub().then(() => setMessage("Signed in with GitHub.")).catch((error: unknown) => {
-                setMessage(error instanceof Error ? error.message : "GitHub sign-in failed.");
-              });
-            }}
-          >
-            Continue with GitHub
-          </button>
         </form>
       )}
       {message ? <p className="status">{message}</p> : null}
@@ -681,6 +716,7 @@ function AccountTab({
               onChange={(event) => onPalette({ ...palette, [face]: { ...palette[face], hex: event.target.value } })}
             />
             <input
+              type="text"
               aria-label={`${face} color name`}
               value={palette[face].name}
               maxLength={16}

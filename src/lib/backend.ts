@@ -233,7 +233,10 @@ export function createFirebaseBackend(): Backend {
     async saveSolve(input) {
       const { auth: current, db: database } = services();
       const user = current.currentUser;
-      if (!user) throw new Error("Sign in as a guest or with an account first.");
+      if (!user) throw new Error("Sign in with an account first.");
+      if (input.onBoard && user.isAnonymous) {
+        throw new Error("Sign in to add a time to the leaderboard.");
+      }
       const name = cleanName(input.name);
       const payload = {
         name,
@@ -390,6 +393,9 @@ export function createLocalBackend(): Backend {
       return paletteOk(colors) ? colors : null;
     },
     async saveSolve(input) {
+      if (input.onBoard && current().guest) {
+        throw new Error("Sign in to add a time to the leaderboard.");
+      }
       const name = cleanName(input.name);
       const state = readLocal();
       state.solves.push({

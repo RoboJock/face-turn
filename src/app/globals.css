@@ -111,6 +111,8 @@ h2 { margin: 18px 0 8px; font-size: 16px; }
   border: 1px solid var(--line);
   border-radius: 28px;
   box-shadow: var(--shadow);
+  scroll-margin-top: 12px;
+  outline: none;
 }
 .play.with-solve {
   display: grid;
@@ -292,7 +294,7 @@ h2 { margin: 18px 0 8px; font-size: 16px; }
 .you-panel { scroll-margin-top: 12px; outline: none; }
 .tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
 .tabs button { border-radius: 12px; padding: 8px 2px; font-size: 14px; }
-.tab-body { padding: 8px 6px 10px; }
+.tab-body { padding: 8px 6px 10px; outline: none; }
 .track { display: flex; gap: 8px; align-items: center; }
 .clock {
   margin: 8px 0 0;
@@ -326,6 +328,38 @@ h2 { margin: 18px 0 8px; font-size: 16px; }
 }
 .hint h2, .lessons h2 { margin-top: 0; }
 .hint p, .lessons p { margin: 6px 0; }
+.lessons { max-width: 720px; }
+.notation {
+  margin: 4px 0 14px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: var(--panel);
+}
+.notation h2 { font-size: 16px; }
+.lesson-group { margin: 6px 0 14px; }
+.lesson-group > summary, .lessons article summary {
+  cursor: pointer;
+  font-weight: 650;
+}
+.lesson-group > summary { font-size: 18px; padding: 6px 0; }
+.lessons article { max-width: 640px; margin-top: 8px; padding: 10px 12px; }
+.lessons article summary { font-size: 16px; }
+.lessons article p { margin: 8px 0 0; }
+.video-list { display: grid; gap: 10px; max-width: 640px; margin-top: 8px; }
+.video-card {
+  display: grid;
+  grid-template-columns: 168px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  text-decoration: none;
+  color: inherit;
+  background: var(--panel);
+  border-radius: 16px;
+  overflow: hidden;
+}
+.video-card img { width: 168px; height: 94px; object-fit: cover; display: block; background: #111; }
+.video-card strong { display: block; }
+.video-card span span { display: block; color: var(--muted); font-size: 13px; margin-top: 4px; }
 .save-solve label, .account-form label, .colors label { display: grid; gap: 6px; font-size: 13px; color: var(--muted); margin: 8px 0; }
 input[type="text"], input[type="email"], input[type="password"], .colors input[type="text"], .save-solve input {
   background: var(--field);
@@ -349,8 +383,17 @@ input[type="text"], input[type="email"], input[type="password"], .colors input[t
 .board em { font-family: var(--font-mono), ui-monospace, monospace; font-style: normal; }
 .history { list-style: none; padding: 0; }
 .history li { grid-template-columns: 1fr; }
-.colors { display: grid; gap: 8px; }
-.colors label { grid-template-columns: 48px 1fr; align-items: center; }
+.colors { display: grid; grid-template-columns: repeat(auto-fill, 210px); gap: 12px 28px; justify-content: start; }
+.colors label { grid-template-columns: 42px 140px; gap: 12px; margin: 0; align-items: center; }
+.colors input[type="color"] {
+  width: 42px;
+  height: 36px;
+  padding: 2px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: transparent;
+}
+.colors input[type="text"] { width: 140px; }
 .presets { display: flex; flex-wrap: wrap; gap: 8px; }
 .fine { font-size: 13px; }
 

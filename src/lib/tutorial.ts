@@ -63,11 +63,12 @@ export const LESSONS: Lesson[] = [
   },
 ];
 
-export const REFERENCES: { title: string; href: string; note: string }[] = [
+export const REFERENCES: { title: string; href: string; note: string; videoId?: string }[] = [
   {
     title: "J Perm — beginner 3×3 tutorial",
     href: "https://www.youtube.com/watch?v=7Ron6MN45LY",
     note: "A clear filmed walkthrough of this same layer-by-layer order. Pause it beside the cube.",
+    videoId: "7Ron6MN45LY",
   },
   {
     title: "CubeSkills — beginner method",
