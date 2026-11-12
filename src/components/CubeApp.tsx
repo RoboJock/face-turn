@@ -19,6 +19,7 @@ import { nextHint, stageOf, STAGE_ORDER, type Hint, type Stage } from "../lib/hi
 import { DEFAULT_PALETTE, namesOf, paletteOk, PRESETS, type Palette } from "../lib/palette";
 import { formatTime, formatWhen } from "../lib/time";
 import { LESSONS, REFERENCES } from "../lib/tutorial";
+import { HOME_VIEW } from "../lib/view";
 import { CubeScene } from "./CubeScene";
 
 type Phase = "idle" | "scrambling" | "ready" | "solving" | "solved";
@@ -69,7 +70,7 @@ export function CubeApp() {
   const [explainHint, setExplainHint] = useState(false);
   const [hinting, setHinting] = useState(false);
   const [palette, setPalette] = useState<Palette>(DEFAULT_PALETTE);
-  const [camera, setCamera] = useState({ x: -28, y: 34 });
+  const [camera, setCamera] = useState(HOME_VIEW);
   const [theme, setTheme] = useState<"light" | "dark">("dark");
   const [user, setUser] = useState<AppUser | null>(null);
   const [board, setBoard] = useState<SolveRecord[]>([]);
@@ -474,7 +475,7 @@ export function CubeApp() {
             <button type="button" onClick={() => orient("U", "D")}>White on bottom</button>
             <button type="button" onClick={() => enqueue("y'", TURN_MS)}>Turn left</button>
             <button type="button" onClick={() => enqueue("y", TURN_MS)}>Turn right</button>
-            <button type="button" onClick={() => setCamera({ x: -28, y: 34 })}>Reset view</button>
+            <button type="button" onClick={() => setCamera(HOME_VIEW)}>Reset view</button>
           </div>
           <p className="keys">Drag a sticker to turn that face. Drag outside the cube to look around. Keys U D L R F B, Shift for inverse, Alt for double.</p>
           </div>

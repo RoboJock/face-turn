@@ -2,12 +2,17 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import type { Face } from "./cube";
 import { faceTurnFromDrag, projectCube } from "./drag";
+import { viewFromAngles } from "./view";
 
-const camera = { x: -28, y: 34 };
+const camera = viewFromAngles(-28, 34);
 
 test("a sideways drag slides that row with the pointer", () => {
   assert.equal(faceTurnFromDrag("U", [0, 1, 1], [1, 0], camera), "U'");
   assert.equal(faceTurnFromDrag("U", [0, 1, 1], [-1, 0], camera), "U");
+  assert.equal(faceTurnFromDrag("U", [0, 1, 0], [1, 0], camera), "U'");
+  assert.equal(faceTurnFromDrag("U", [0, 1, 0], [-1, 0], camera), "U");
+  assert.equal(faceTurnFromDrag("U", [1, 1, 0], [1, 0], camera), "U'");
+  assert.equal(faceTurnFromDrag("D", [0, -1, 0], [1, 0], camera), "D");
   assert.equal(faceTurnFromDrag("F", [0, -1, 1], [1, 0], camera), "F'");
   assert.equal(faceTurnFromDrag("F", [0, -1, 1], [-1, 0], camera), "F");
   assert.equal(faceTurnFromDrag("F", [0, 0, 1], [1, 0], camera), "y'");
@@ -17,10 +22,12 @@ test("a sideways drag slides that row with the pointer", () => {
 test("an upward drag still slides that edge upward", () => {
   assert.equal(faceTurnFromDrag("F", [1, 0, 1], [0, -1], camera), "F'");
   assert.equal(faceTurnFromDrag("F", [-1, 0, 1], [0, -1], camera), "F");
+  assert.equal(faceTurnFromDrag("U", [0, 1, 1], [0, -1], camera)[0], "U");
+  assert.equal(faceTurnFromDrag("U", [1, 1, 0], [0, -1], camera)[0], "U");
 });
 
 test("the chosen turn is the one that follows the pointer", () => {
-  const cameras = [camera, { x: 20, y: -30 }, { x: -40, y: 100 }];
+  const cameras = [camera, viewFromAngles(20, -30), viewFromAngles(-40, 100)];
   const spots: [Face, [number, number, number]][] = [
     ["U", [0, 1, 1]],
     ["U", [1, 1, 1]],
@@ -42,6 +49,10 @@ test("the chosen turn is the one that follows the pointer", () => {
     for (const [face, cubie] of spots) {
       for (const drag of drags) {
         const move = faceTurnFromDrag(face, cubie, drag, view);
+        if (face === "U" || face === "D") {
+          assert.equal(move[0], face, `${face} ${cubie} drag ${drag} turned ${move}`);
+          continue;
+        }
         const chosen = alignment(move, cubie, drag, view);
         for (const other of candidates(cubie)) {
           const score = alignment(other, cubie, drag, view);
@@ -70,7 +81,7 @@ const VELOCITY: Record<string, (pos: [number, number, number]) => [number, numbe
   z: ([x, y]) => [y, -x, 0],
 };
 
-function alignment(move: string, cubie: [number, number, number], drag: [number, number], view: { x: number; y: number }): number {
+function alignment(move: string, cubie: [number, number, number], drag: [number, number], view: ReturnType<typeof viewFromAngles>): number {
   const base = move.replace("'", "");
   const sign = move.endsWith("'") ? -1 : 1;
   const velocity = VELOCITY[base](cubie).map((part) => part * sign) as [number, number, number];

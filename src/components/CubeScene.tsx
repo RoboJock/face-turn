@@ -3,6 +3,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { parseMove, stickerEntries, type CubeState, type Face } from "../lib/cube";
 import { faceTurnFromDrag } from "../lib/drag";
+import { orbitView, viewMatrix3d, type Mat3 } from "../lib/view";
 import type { Palette } from "../lib/palette";
 
 const STEP = 70;
@@ -104,23 +105,26 @@ export function CubeScene({
   anim: { move: string; duration: number; token: number } | null;
   onAnimEnd: () => void;
   onTurn: (move: string) => void;
-  camera: { x: number; y: number };
-  onCamera: (next: { x: number; y: number }) => void;
+  camera: Mat3;
+  onCamera: (next: Mat3) => void;
   hintMove?: string;
 }) {
   const stageRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<HTMLDivElement>(null);
   const [live, setLive] = useState(false);
-  const orbit = useRef<{ x: number; y: number; camX: number; camY: number } | null>(null);
+  const orbit = useRef<{ x: number; y: number; view: Mat3 } | null>(null);
+  const viewRef = useRef(camera);
+  viewRef.current = camera;
   const orbitFrame = useRef(0);
   const drag = useRef<{ x: number; y: number; face: Face; cubie: [number, number, number] } | null>(null);
   const endRef = useRef(onAnimEnd);
   endRef.current = onAnimEnd;
 
-  function paintCamera(next: { x: number; y: number }) {
+  function paintCamera(next: Mat3) {
     const scene = sceneRef.current;
     if (!scene) return;
-    scene.style.transform = `rotateX(${next.x}deg) rotateY(${next.y}deg)`;
+    viewRef.current = next;
+    scene.style.transform = viewMatrix3d(next);
   }
 
   useLayoutEffect(() => {
@@ -154,7 +158,7 @@ export function CubeScene({
       drag.current = face && cubie ? { x: event.clientX, y: event.clientY, face, cubie } : null;
       orbit.current = null;
     } else {
-      orbit.current = { x: event.clientX, y: event.clientY, camX: camera.x, camY: camera.y };
+      orbit.current = { x: event.clientX, y: event.clientY, view: viewRef.current };
       drag.current = null;
     }
     event.currentTarget.setPointerCapture(event.pointerId);
@@ -162,10 +166,11 @@ export function CubeScene({
 
   function pointerMove(event: React.PointerEvent) {
     if (orbit.current) {
-      const next = {
-        x: Math.max(-70, Math.min(70, orbit.current.camX - (event.clientY - orbit.current.y) * 0.35)),
-        y: orbit.current.camY + (event.clientX - orbit.current.x) * 0.45,
-      };
+      const next = orbitView(
+        orbit.current.view,
+        -(event.clientY - orbit.current.y) * 0.35,
+        (event.clientX - orbit.current.x) * 0.45,
+      );
       paintCamera(next);
       cancelAnimationFrame(orbitFrame.current);
       orbitFrame.current = requestAnimationFrame(() => onCamera(next));
@@ -186,10 +191,8 @@ export function CubeScene({
       orbit.current = null;
       return;
     }
-    const match = sceneRef.current.style.transform.match(/rotateX\(([-\d.]+)deg\) rotateY\(([-\d.]+)deg\)/);
     orbit.current = null;
-    if (!match) return;
-    onCamera({ x: Number(match[1]), y: Number(match[2]) });
+    onCamera(viewRef.current);
   }
 
   return (
@@ -206,7 +209,7 @@ export function CubeScene({
         <div
           ref={sceneRef}
           className="scene"
-          style={{ transform: `rotateX(${camera.x}deg) rotateY(${camera.y}deg)` }}
+          style={{ transform: viewMatrix3d(camera) }}
         >
           {cube.cubies.map((cubie) => {
             const spinning = Boolean(anim && live && inSlice(parseMove(anim.move).turn, cubie.pos));

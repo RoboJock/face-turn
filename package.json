@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "test": "tsx --test src/lib/cube.test.ts src/lib/hints.test.ts src/lib/drag.test.ts"
+    "test": "tsx --test src/lib/cube.test.ts src/lib/hints.test.ts src/lib/drag.test.ts src/lib/view.test.ts"
   },
   "dependencies": {
     "firebase": "^11.10.0",
