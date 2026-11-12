@@ -282,10 +282,6 @@ export function CubeApp() {
   }
 
   function askHint() {
-    if (orderRef.current !== 3) {
-      setStatus("Hints follow the 3×3.");
-      return;
-    }
     setHinting(true);
     window.setTimeout(() => {
       setHint(nextHint(cubeRef.current, namesOf(palette)));
@@ -379,7 +375,7 @@ export function CubeApp() {
   });
 
   const elapsed = finalMs ?? (running && startedAt !== null ? now - startedAt : 0);
-  const stage = order === 3 ? stageOf(cube) : isSolved(cube) ? "solved" : "cross";
+  const stage = stageOf(cube);
   const hintMove = hint && stage !== "solved" ? hint.algorithm.split(/\s+/)[0] ?? "" : "";
   function hinted(token: string) {
     return hintMove === token ? "hinted" : "";
@@ -464,8 +460,8 @@ export function CubeApp() {
                   ))}
                 </div>
               ) : null}
-              <p className="stage-name">{stage === "solved" ? "Solved" : order === 3 ? STAGE_LABEL[stage] : "In progress"}</p>
-              <button type="button" onClick={askHint} disabled={hinting || stage === "solved" || order !== 3}>
+              <p className="stage-name">{stage === "solved" ? "Solved" : order === 3 ? STAGE_LABEL[stage] : hint?.title || "In progress"}</p>
+              <button type="button" onClick={askHint} disabled={hinting || stage === "solved"}>
                 {hinting ? "Looking…" : hint ? "Another hint" : "I'm stuck"}
               </button>
               {hint && stage !== "solved" && hintMove ? (

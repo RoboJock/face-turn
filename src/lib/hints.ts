@@ -12,6 +12,8 @@ import {
   type CubeState,
   type Face,
 } from "./cube";
+import { pocketHint } from "./pocket";
+import { revengeHint } from "./revenge";
 
 export const COLOR_WORDS: Record<Face, string> = {
   U: "white",
@@ -117,6 +119,7 @@ function firstTwoLayers(state: CubeState): boolean {
 
 export function stageOf(state: CubeState): Stage {
   if (isSolved(state)) return "solved";
+  if (state.order !== 3) return "cross";
   if (centerFace(state, "U") !== "D") return "orient";
   if (crossCount(state) < 4) return "cross";
   if (cornerCount(state) < 4) return "corners";
@@ -420,7 +423,7 @@ function progressLine(state: CubeState, stage: Stage, names: Record<Face, string
   return "";
 }
 
-export function nextHint(state: CubeState, names: Record<Face, string> = COLOR_WORDS): Hint {
+function faceHint(state: CubeState, names: Record<Face, string>): Hint {
   const stage = stageOf(state);
   if (stage === "solved") {
     return {
@@ -445,6 +448,12 @@ export function nextHint(state: CubeState, names: Record<Face, string> = COLOR_W
   const progress = progressLine(state, stage, names);
   const detail = detailFor(stage, names, algorithm);
   return { stage, title: STAGE_TITLE[stage], detail, algorithm, progress };
+}
+
+export function nextHint(state: CubeState, names: Record<Face, string> = COLOR_WORDS): Hint {
+  if (state.order === 2) return pocketHint(state, names);
+  if (state.order === 4) return revengeHint(state, names, faceHint);
+  return faceHint(state, names);
 }
 
 function detailFor(stage: Stage, names: Record<Face, string>, algorithm: string): string {
