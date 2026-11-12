@@ -83,6 +83,21 @@ function wholeTurn(turn: string): boolean {
   return turn === "x" || turn === "y" || turn === "z";
 }
 
+function isFaceCenter(face: Face, [x, y, z]: [number, number, number]): boolean {
+  if (face === "U" || face === "D") return x === 0 && z === 0;
+  if (face === "F" || face === "B") return x === 0 && y === 0;
+  return y === 0 && z === 0;
+}
+
+function inkOn(hex: string): string {
+  const value = Number.parseInt(hex.slice(1), 16);
+  const red = (value >> 16) & 255;
+  const green = (value >> 8) & 255;
+  const blue = value & 255;
+  const luminance = (0.2126 * red + 0.7152 * green + 0.0722 * blue) / 255;
+  return luminance > 0.62 ? "#1c1915" : "#f7f4ee";
+}
+
 function cubieAt(target: HTMLElement): [number, number, number] | null {
   const cubie = target.closest(".cubie") as HTMLElement | null;
   const match = cubie?.style.transform.match(/translate3d\(([-\d.]+)px,\s*([-\d.]+)px,\s*([-\d.]+)px\)/);
@@ -236,9 +251,11 @@ export function CubeScene({
                             type="button"
                             className="sticker"
                             data-face={face}
-                            aria-label={`${palette[color].name} sticker`}
-                            style={{ background: palette[color].hex }}
-                          />
+                            aria-label={isFaceCenter(face, cubie.pos) ? `${face} center, ${palette[color].name}` : `${palette[color].name} sticker`}
+                            style={{ background: palette[color].hex, color: inkOn(palette[color].hex) }}
+                          >
+                            {isFaceCenter(face, cubie.pos) ? <span className="face-mark">{face}</span> : null}
+                          </button>
                         ) : null}
                       </div>
                     );

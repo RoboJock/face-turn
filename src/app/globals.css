@@ -121,6 +121,36 @@ h2 { margin: 18px 0 8px; font-size: 16px; }
 .solve-side { padding: 22px 4px 22px 26px; }
 .solve-side .clock { font-size: 52px; }
 .cube-column { min-width: 0; }
+.cube-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 148px;
+  align-items: stretch;
+}
+.turn-log {
+  margin: 22px 18px 8px 0;
+  padding: 0 0 0 14px;
+  border-left: 1px solid var(--line);
+  max-height: 424px;
+  overflow: auto;
+}
+.turn-log h2 {
+  margin: 0 0 10px;
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.turn-log p { margin: 0; color: var(--muted); font-size: 13px; }
+.turn-log ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 15px;
+}
 .hint-note { margin: 10px 0 0; font-size: 13px; color: var(--muted); }
 .stage {
   position: relative;
@@ -210,6 +240,17 @@ h2 { margin: 18px 0 8px; font-size: 16px; }
   transform: translateZ(1.5px);
   backface-visibility: hidden;
   cursor: grab;
+  display: grid;
+  place-items: center;
+}
+.face-mark {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0;
+  pointer-events: none;
+  user-select: none;
 }
 .hint-arrow {
   position: absolute;
@@ -315,6 +356,14 @@ input[type="text"], input[type="email"], input[type="password"], .colors input[t
   h1 { font-size: 28px; }
   .play.with-solve { grid-template-columns: 1fr; }
   .solve-side { padding: 18px 18px 0; }
+  .cube-row { grid-template-columns: 1fr; }
+  .turn-log {
+    margin: 0 18px 12px;
+    padding: 12px 0 0;
+    border-left: 0;
+    border-top: 1px solid var(--line);
+    max-height: 140px;
+  }
   .stage { height: 360px; }
   .clock { font-size: 52px; }
   .topbar { flex-direction: column; align-items: stretch; }

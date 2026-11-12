@@ -187,7 +187,7 @@ export function CubeApp() {
   }, [pump]);
 
   function enqueue(alg: string, duration: number, record?: boolean) {
-    const shouldRecord = record ?? (phaseRef.current === "ready" || phaseRef.current === "solving");
+    const shouldRecord = record ?? (phaseRef.current === "idle" || phaseRef.current === "ready" || phaseRef.current === "solving");
     const moves = parseAlg(alg).map((move) => formatMove(move));
     if (moves.length === 0) return;
     queueRef.current.push(...moves.map((move) => ({ move, record: shouldRecord, duration })));
@@ -451,6 +451,7 @@ export function CubeApp() {
             </div>
           ) : null}
           <div className="cube-column">
+          <div className="cube-row">
           <CubeScene
             cube={cube}
             palette={palette}
@@ -461,6 +462,17 @@ export function CubeApp() {
             camera={camera}
             onCamera={setCamera}
           />
+          <aside className="turn-log" aria-label="Turn history">
+            <h2>Turns</h2>
+            {solution.length === 0 ? <p>No turns yet.</p> : (
+              <ol>
+                {solution.map((move, index) => (
+                  <li key={`${index}-${move}`}>{move.replaceAll("'", "′")}</li>
+                ))}
+              </ol>
+            )}
+          </aside>
+          </div>
           <div className="move-pad" aria-label="Face turns">
             {MOVE_ROWS.map((face) => (
               <div key={face} className="move-row">
