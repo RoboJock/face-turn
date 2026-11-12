@@ -229,6 +229,7 @@ export function CubeApp() {
     startedRef.current = null;
     setHint(null);
     setStatus("");
+    setCamera(HOME_VIEW);
     setPhaseBoth("idle");
   }
 
