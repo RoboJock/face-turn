@@ -10,16 +10,25 @@ export function projectCube(vec: [number, number, number], view: Mat3): [number,
 type Vec = [number, number, number];
 
 /** How a clockwise quarter of each slice moves a cubie. Whole-cube x/y/z match R/U/F. */
-const SLICE_VELOCITY: Record<string, (pos: Vec) => Vec> = {
+const FACE_VELOCITY: Record<string, (pos: Vec) => Vec> = {
   U: ([x, , z]) => [-z, 0, x],
   D: ([x, , z]) => [z, 0, -x],
   F: ([x, y]) => [y, -x, 0],
   B: ([x, y]) => [-y, x, 0],
   R: ([, y, z]) => [0, z, -y],
   L: ([, y, z]) => [0, -z, y],
-  y: ([x, , z]) => [-z, 0, x],
-  x: ([, y, z]) => [0, z, -y],
-  z: ([x, y]) => [y, -x, 0],
+};
+const SLICE_VELOCITY: Record<string, (pos: Vec) => Vec> = {
+  ...FACE_VELOCITY,
+  u: FACE_VELOCITY.U,
+  d: FACE_VELOCITY.D,
+  f: FACE_VELOCITY.F,
+  b: FACE_VELOCITY.B,
+  r: FACE_VELOCITY.R,
+  l: FACE_VELOCITY.L,
+  y: FACE_VELOCITY.U,
+  x: FACE_VELOCITY.R,
+  z: FACE_VELOCITY.F,
 };
 
 function slicesAt([x, y, z]: Vec, order: CubeOrder): string[] {

@@ -26,6 +26,15 @@ test("an upward drag still slides that edge upward", () => {
   assert.equal(faceTurnFromDrag("U", [1, 1, 0], [0, -1], camera)[0], "U");
 });
 
+test("a 4×4 inner drag turns that inner slice", () => {
+  assert.equal(faceTurnFromDrag("F", [1, 1, 3], [1, 0], camera, 4), "u'");
+  assert.equal(faceTurnFromDrag("F", [1, 1, 3], [-1, 0], camera, 4), "u");
+  assert.equal(faceTurnFromDrag("F", [1, 1, 3], [0, -1], camera, 4), "r");
+  assert.equal(faceTurnFromDrag("F", [1, -1, 3], [1, 0], camera, 4), "d");
+  assert.equal(faceTurnFromDrag("R", [3, 1, 1], [0, -1], camera, 4), "f'");
+  assert.equal(faceTurnFromDrag("F", [3, 1, 3], [1, 0], camera, 4), "F");
+});
+
 test("the chosen turn is the one that follows the pointer", () => {
   const cameras = [camera, viewFromAngles(20, -30), viewFromAngles(-40, 100)];
   const spots: [Face, [number, number, number]][] = [
