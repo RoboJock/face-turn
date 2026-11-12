@@ -71,18 +71,8 @@ export const REFERENCES: { title: string; href: string; note: string; videoId?: 
     videoId: "7Ron6MN45LY",
   },
   {
-    title: "CubeSkills — beginner method",
-    href: "https://www.cubeskills.com/tutorials/beginners-method",
-    note: "Feliks Zemdegs' written lessons, with the cross, first two layers, and last layer split apart.",
-  },
-  {
     title: "Ruwix — beginner method",
     href: "https://ruwix.com/the-rubiks-cube/how-to-solve-the-rubiks-cube-beginners-method/",
     note: "Diagrams for every stage if you want a still picture instead of a video.",
-  },
-  {
-    title: "Speedsolving Wiki — beginner method",
-    href: "https://www.speedsolving.com/wiki/index.php/Beginner%27s_Method",
-    note: "A community reference for the same steps, plus what to learn after you can solve it.",
   },
 ];
