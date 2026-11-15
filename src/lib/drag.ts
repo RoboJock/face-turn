@@ -131,5 +131,55 @@ export function faceTurnFromDrag(
       }
     }
   }
-  return bestMove;
+  return alongFacingEdge(face, cubie, drag, camera, order, bestScore) ?? bestMove;
+}
+
+/** A drag along the front or back edge of a side face turns that front or back face. */
+function alongFacingEdge(
+  face: Face,
+  cubie: Vec,
+  drag: [number, number],
+  camera: Mat3,
+  order: CubeOrder,
+  bestScore: number,
+): string | null {
+  const dragLen = Math.hypot(drag[0], drag[1]);
+  if (dragLen < 1e-4) return null;
+  const dragUnit: [number, number] = [drag[0] / dragLen, drag[1] / dragLen];
+  let chosen: string | null = null;
+  let bestParallel = 0.94;
+  for (const edge of outerEdges(cubie, order)) {
+    const along = projectCube(edge.dir, camera);
+    const alongLen = Math.hypot(along[0], along[1]);
+    if (alongLen < 1e-4) continue;
+    const parallel = Math.abs((along[0] * dragUnit[0] + along[1] * dragUnit[1]) / alongLen);
+    if (parallel < bestParallel) continue;
+    if (face !== "L" && face !== "R") continue;
+    const facing = edge.faces.find((item) => item === "F" || item === "B");
+    if (!facing) continue;
+    const screen = projectCube(SLICE_VELOCITY[facing](cubie), camera);
+    const alignment = screen[0] * drag[0] + screen[1] * drag[1];
+    const score = Math.abs(alignment);
+    if (score + 1e-3 < bestScore * 0.75) continue;
+    bestParallel = parallel;
+    chosen = alignment >= 0 ? facing : `${facing}'`;
+  }
+  return chosen;
+}
+
+function outerEdges(cubie: Vec, order: CubeOrder): { dir: Vec; faces: [Face, Face] }[] {
+  const outer = outerIndex(order);
+  const axisFace = (value: number, positive: Face, negative: Face): Face | null => {
+    if (value === outer) return positive;
+    if (value === -outer) return negative;
+    return null;
+  };
+  const x = axisFace(cubie[0], "R", "L");
+  const y = axisFace(cubie[1], "U", "D");
+  const z = axisFace(cubie[2], "F", "B");
+  const edges: { dir: Vec; faces: [Face, Face] }[] = [];
+  if (y && z) edges.push({ dir: [1, 0, 0], faces: [y, z] });
+  if (x && z) edges.push({ dir: [0, 1, 0], faces: [x, z] });
+  if (x && y) edges.push({ dir: [0, 0, 1], faces: [x, y] });
+  return edges;
 }

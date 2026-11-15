@@ -19,6 +19,13 @@ test("a sideways drag slides that row with the pointer", () => {
   assert.equal(faceTurnFromDrag("F", [0, 0, 1], [-1, 0], camera), "y");
 });
 
+test("pulling down the top-right sticker of the left face turns the front counterclockwise", () => {
+  assert.equal(faceTurnFromDrag("L", [-1, 1, 1], [0, 1], camera), "F'");
+  assert.equal(faceTurnFromDrag("L", [-1, 1, 1], [0.15, 1], camera), "F'");
+  assert.equal(faceTurnFromDrag("L", [-1, 0, 1], [0, 1], camera), "F'");
+  assert.equal(faceTurnFromDrag("L", [-1, 1, 1], [1, 0], camera), "U'");
+});
+
 test("an upward drag still slides that edge upward", () => {
   assert.equal(faceTurnFromDrag("F", [1, 0, 1], [0, -1], camera), "F'");
   assert.equal(faceTurnFromDrag("F", [-1, 0, 1], [0, -1], camera), "F");
