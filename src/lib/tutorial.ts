@@ -63,7 +63,7 @@ export const LESSONS: Lesson[] = [
   },
 ];
 
-export const REFERENCES: { title: string; href: string; note: string; videoId?: string; size: 2 | 3 | 4 }[] = [
+export const REFERENCES: { title: string; href: string; note: string; videoId?: string; size: 2 | 3 | 4 | 5 }[] = [
   {
     title: "J Perm — beginner 3×3 tutorial",
     href: "https://www.youtube.com/watch?v=7Ron6MN45LY",
@@ -90,5 +90,12 @@ export const REFERENCES: { title: string; href: string; note: string; videoId?: 
     note: "Solve the centers, pair the edges, then finish it like a 3×3.",
     videoId: "KWOZHbDdOeo",
     size: 4,
+  },
+  {
+    title: "J Perm — beginner 5×5 tutorial",
+    href: "https://www.youtube.com/watch?v=d1I-jJlVwB4",
+    note: "Solve the centers, pair the edges, then finish it like a 3×3.",
+    videoId: "d1I-jJlVwB4",
+    size: 5,
   },
 ];

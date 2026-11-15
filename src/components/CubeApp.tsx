@@ -681,7 +681,7 @@ export function CubeApp() {
           {tab === "board" ? (
             <div ref={panelRef} tabIndex={-1} className="tab-body">
               <h2>Leaderboard</h2>
-              <p>{backend.mode === "local" ? "Times saved in this browser." : "Times saved in Firebase."} A solve is added only after the cube is finished with the timer on, and only from a signed-in account.</p>
+              <p>A solve is added only after the cube is finished with the timer on, and only from a signed-in account.</p>
               {board.length === 0 ? <p>No times yet. Finish a timed scramble and add it.</p> : (
                 <ol className="board">
                   {board.map((entry, index) => (
