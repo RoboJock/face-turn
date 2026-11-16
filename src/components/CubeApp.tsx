@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createBackend, firebasePublicConfig, type AppUser, type Backend, type SolveRecord } from "../lib/backend";
 import {
+  applyAlg,
   applyMove,
   formatMove,
   invertMove,
@@ -16,6 +17,7 @@ import {
   type CubeOrder,
   type CubeState,
 } from "../lib/cube";
+import { leaderboardAllowed, LEADERBOARD_HINT_LIMIT } from "../lib/board";
 import { nextHint, stageOf, STAGE_ORDER, type Hint, type Stage } from "../lib/hints";
 import { DEFAULT_PALETTE, namesOf, paletteOk, PRESETS, type Palette } from "../lib/palette";
 import { formatTime, formatWhen } from "../lib/time";
@@ -46,6 +48,7 @@ const STAGE_LABEL: Record<Stage, string> = {
 
 const MOVE_ROWS = ["U", "D", "L", "R", "F", "B"] as const;
 const TURN_MS = 160;
+const HUMAN_GAP_MS = 700;
 
 export function CubeApp() {
   const backend = useMemo<Backend>(() => createBackend(), []);
@@ -79,6 +82,13 @@ export function CubeApp() {
   const [notation, setNotation] = useState(true);
   const [explainHint, setExplainHint] = useState(false);
   const [hinting, setHinting] = useState(false);
+  const [hintsUsed, setHintsUsed] = useState(0);
+  const [assisted, setAssisted] = useState(false);
+  const [autoMode, setAutoMode] = useState<"pace" | "instant" | null>(null);
+  const hintsRef = useRef(0);
+  const assistedRef = useRef(false);
+  const solveRun = useRef(0);
+  const autoLock = useRef(false);
   const [palette, setPalette] = useState<Palette>(DEFAULT_PALETTE);
   const [camera, setCamera] = useState(HOME_VIEW);
   const [theme, setTheme] = useState<"light" | "dark">("dark");
@@ -193,9 +203,9 @@ export function CubeApp() {
     setCube(next);
     const hintedMove = hintRef.current?.algorithm.split(/\s+/)[0] ?? "";
     if (hintedMove && formatMove(parseMove(hintedMove)) === job.move) setHintLit(false);
-    if (job.record) {
+      if (job.record) {
       setSolution((previous) => [...previous, job.move]);
-      if (phaseRef.current === "ready") {
+      if (!assistedRef.current && phaseRef.current === "ready") {
         setPhaseBoth("solving");
         if (trackRef.current) {
           const start = performance.now();
@@ -207,7 +217,7 @@ export function CubeApp() {
       if (isSolved(next) && (phaseRef.current === "solving" || phaseRef.current === "ready")) {
         const elapsed = startedRef.current === null ? null : performance.now() - startedRef.current;
         setRunning(false);
-        setFinalMs(trackRef.current ? elapsed : null);
+        setFinalMs(trackRef.current && !assistedRef.current ? elapsed : null);
         setPhaseBoth("solved");
       }
     } else if (queueRef.current.length === 0 && phaseRef.current === "scrambling") {
@@ -216,7 +226,8 @@ export function CubeApp() {
     pump();
   }, [pump]);
 
-  function enqueue(alg: string, duration: number, record?: boolean) {
+  function enqueue(alg: string, duration: number, record?: boolean, source: "user" | "auto" = "user") {
+    if (autoLock.current && source !== "auto") return;
     const shouldRecord = record ?? (phaseRef.current === "idle" || phaseRef.current === "ready" || phaseRef.current === "solving");
     const moves = parseAlg(alg).map((move) => formatMove(move));
     if (moves.length === 0) return;
@@ -228,8 +239,19 @@ export function CubeApp() {
     return jobRef.current !== null || queueRef.current.length > 0;
   }
 
+  function clearFairness() {
+    solveRun.current += 1;
+    autoLock.current = false;
+    assistedRef.current = false;
+    hintsRef.current = 0;
+    setAssisted(false);
+    setHintsUsed(0);
+    setAutoMode(null);
+  }
+
   function dealScramble() {
     if (busy()) return;
+    clearFairness();
     const alg = scrambleAlg(orderRef.current === 2 ? 11 : orderRef.current === 4 ? 36 : orderRef.current === 5 ? 60 : 20, Math.random, orderRef.current);
     cubeRef.current = restingCube(orderRef.current);
     setCube(cubeRef.current);
@@ -246,6 +268,7 @@ export function CubeApp() {
   }
 
   function resetCube() {
+    clearFairness();
     queueRef.current = [];
     jobRef.current = null;
     setAnim(null);
@@ -293,12 +316,97 @@ export function CubeApp() {
   }
 
   function askHint() {
+    if (autoLock.current || isSolved(cubeRef.current)) return;
+    hintsRef.current += 1;
+    setHintsUsed(hintsRef.current);
     setHinting(true);
     window.setTimeout(() => {
       rememberHint(nextHint(cubeRef.current, namesOf(palette)));
       setExplainHint(false);
       setHinting(false);
     }, 20);
+  }
+
+  function waitIdle() {
+    return new Promise<void>((resolve) => {
+      const check = () => {
+        if (!jobRef.current && queueRef.current.length === 0) resolve();
+        else window.setTimeout(check, 30);
+      };
+      check();
+    });
+  }
+
+  async function autoSolve(instant: boolean) {
+    if (autoLock.current || busy() || !scramble || isSolved(cubeRef.current)) return;
+    const pace = instant
+      ? "Instant solve finishes the cube immediately. This solve will not be saved on the leaderboard."
+      : "Auto solve turns the cube one move at a time, at a normal pace, until it is solved. This solve will not be saved on the leaderboard.";
+    if (!window.confirm(pace)) return;
+    const run = solveRun.current + 1;
+    solveRun.current = run;
+    autoLock.current = true;
+    assistedRef.current = true;
+    setAssisted(true);
+    setAutoMode(instant ? "instant" : "pace");
+    setRunning(false);
+    setStartedAt(null);
+    startedRef.current = null;
+    setFinalMs(null);
+    setPhaseBoth("solving");
+    setStatus(instant ? "Solving now." : "Solving one move at a time.");
+    const names = namesOf(palette);
+    const limit = orderRef.current === 5 ? 400 : orderRef.current === 4 ? 240 : 120;
+    try {
+      if (instant) {
+        let state = cubeRef.current;
+        const taken: string[] = [];
+        for (let step = 0; step < limit && !isSolved(state); step += 1) {
+          await new Promise((resolve) => window.setTimeout(resolve, 0));
+          if (solveRun.current !== run) return;
+          const hint = nextHint(state, names);
+          if (!hint.algorithm.trim()) break;
+          taken.push(hint.algorithm.trim());
+          state = applyAlg(state, hint.algorithm);
+          await new Promise((resolve) => window.setTimeout(resolve, 0));
+        }
+        if (solveRun.current !== run) return;
+        cubeRef.current = state;
+        setCube(state);
+        const formatted = taken.flatMap((alg) => parseAlg(alg).map((move) => formatMove(move)));
+        setSolution((previous) => [...previous, ...formatted]);
+        setPhaseBoth(isSolved(state) ? "solved" : "solving");
+        setStatus(isSolved(state)
+          ? "Solved instantly. This one stays off the leaderboard."
+          : "The hints cannot finish this scramble. It stays off the leaderboard.");
+        return;
+      }
+      for (let step = 0; step < limit && !isSolved(cubeRef.current); step += 1) {
+        await new Promise((resolve) => window.setTimeout(resolve, 0));
+        if (solveRun.current !== run) return;
+        const hint = nextHint(cubeRef.current, names);
+        const moves = hint.algorithm.trim().split(/\s+/).filter(Boolean);
+        if (moves.length === 0) {
+          setStatus("The hints cannot finish this scramble. It stays off the leaderboard.");
+          return;
+        }
+        for (const move of moves) {
+          if (solveRun.current !== run) return;
+          enqueue(move, prefersReduced() ? 16 : TURN_MS, true, "auto");
+          await waitIdle();
+          await new Promise((resolve) => window.setTimeout(resolve, prefersReduced() ? 280 : HUMAN_GAP_MS));
+        }
+      }
+      if (solveRun.current !== run) return;
+      setStatus(isSolved(cubeRef.current)
+        ? "Solved automatically. This one stays off the leaderboard."
+        : "The hints cannot finish this scramble. It stays off the leaderboard.");
+    } finally {
+      if (solveRun.current === run) {
+        autoLock.current = false;
+        setAutoMode(null);
+      }
+    }
   }
 
   async function publish(onBoard: boolean) {
@@ -317,6 +425,12 @@ export function CubeApp() {
     }
     if (onBoard && (!timed || finalMs === null || finalMs < 1000)) {
       setStatus("Leaderboard times start at 1.00 so an accidental tap stays off the board.");
+      return;
+    }
+    if (onBoard && !leaderboardAllowed(hintsRef.current, assistedRef.current)) {
+      setStatus(assistedRef.current
+        ? "Auto solve and Instant solve stay off the leaderboard."
+        : `More than ${LEADERBOARD_HINT_LIMIT} hints were used, so this time stays off the leaderboard.`);
       return;
     }
     try {
@@ -346,6 +460,7 @@ export function CubeApp() {
     if (next === orderRef.current || jobRef.current || queueRef.current.length > 0) return;
     orderRef.current = next;
     setOrder(next);
+    clearFairness();
     queueRef.current = [];
     jobRef.current = null;
     setAnim(null);
@@ -371,7 +486,7 @@ export function CubeApp() {
   }
 
   function orient(color: "U" | "D", face: "U" | "D") {
-    if (jobRef.current || queueRef.current.length > 0) return;
+    if (autoLock.current || jobRef.current || queueRef.current.length > 0) return;
     const alg = movesToPutColorOn(cubeRef.current, color, face);
     if (alg) enqueue(alg, prefersReduced() ? 16 : TURN_MS);
   }
@@ -384,6 +499,7 @@ export function CubeApp() {
       if ("urfdlb".includes(key)) {
         event.preventDefault();
         const suffix = event.altKey ? "2" : event.shiftKey ? "'" : "";
+        if (autoLock.current) return;
         enqueue(`${key.toUpperCase()}${suffix}`, prefersReduced() ? 16 : TURN_MS);
       }
     }
@@ -487,9 +603,24 @@ export function CubeApp() {
                 </div>
               ) : null}
               <p className="stage-name">{stage === "solved" ? "Solved" : order === 3 ? STAGE_LABEL[stage] : hint?.title || "In progress"}</p>
-              <button type="button" onClick={askHint} disabled={hinting || stage === "solved"}>
-                {hinting ? "Looking…" : hint ? "Another hint" : "I'm stuck"}
-              </button>
+              <div className="row solve-actions">
+                <button type="button" onClick={askHint} disabled={hinting || autoMode !== null || stage === "solved"}>
+                  {hinting ? "Looking…" : hint ? "Another hint" : "I'm stuck"}
+                </button>
+                <button type="button" onClick={() => void autoSolve(false)} disabled={autoMode !== null || stage === "solved" || phase === "idle" || phase === "scrambling"}>
+                  {autoMode === "pace" ? "Solving…" : "Auto solve"}
+                </button>
+                <button type="button" onClick={() => void autoSolve(true)} disabled={autoMode !== null || stage === "solved" || phase === "idle" || phase === "scrambling"}>
+                  {autoMode === "instant" ? "Solving…" : "Instant solve"}
+                </button>
+              </div>
+              {scramble && !assisted ? (
+                <p className="hint-note">
+                  {hintsUsed <= LEADERBOARD_HINT_LIMIT
+                    ? `Hints used: ${hintsUsed}. Up to ${LEADERBOARD_HINT_LIMIT} can still go on the leaderboard.`
+                    : `Hints used: ${hintsUsed}. More than ${LEADERBOARD_HINT_LIMIT} hints keeps this time off the leaderboard.`}
+                </p>
+              ) : null}
               {hint && stage !== "solved" && hintMove ? (
                 <p className="hint-note">The highlighted notation is the next move.</p>
               ) : null}
@@ -520,14 +651,17 @@ export function CubeApp() {
                     Name on the board
                     <input value={boardName} onChange={(event) => setBoardName(event.target.value)} placeholder={user.name} maxLength={24} />
                   </label>
+                  {!leaderboardAllowed(hintsUsed, assisted) ? (
+                    <p className="hint-note">{assisted ? "This solve was done for you, so it stays off the leaderboard." : `More than ${LEADERBOARD_HINT_LIMIT} hints were used, so this time stays off the leaderboard.`}</p>
+                  ) : null}
                   <div className="row">
-                    <button type="submit" className="primary" disabled={!track || finalMs === null}>Add to leaderboard</button>
+                    <button type="submit" className="primary" disabled={!track || finalMs === null || !leaderboardAllowed(hintsUsed, assisted)}>Add to leaderboard</button>
                     <button type="button" onClick={() => void publish(false)}>Save privately</button>
                   </div>
                 </form>
                 ) : (
                 <div className="save-solve">
-                  <p>Sign in to put this time on the leaderboard.</p>
+                  <p>{leaderboardAllowed(hintsUsed, assisted) ? "Sign in to put this time on the leaderboard." : assisted ? "This solve was done for you, so it stays off the leaderboard." : `More than ${LEADERBOARD_HINT_LIMIT} hints were used, so this time stays off the leaderboard.`}</p>
                   <div className="row">
                     <button type="button" className="primary" onClick={() => setTab("you")}>Sign in</button>
                     <button type="button" onClick={() => void publish(false)}>Save privately</button>
@@ -545,7 +679,10 @@ export function CubeApp() {
             palette={palette}
             anim={anim}
             onAnimEnd={finishAnim}
-            onTurn={(move, duration) => enqueue(move, duration ?? (prefersReduced() ? 16 : TURN_MS))}
+            onTurn={(move, duration) => {
+              if (autoLock.current) return;
+              enqueue(move, duration ?? (prefersReduced() ? 16 : TURN_MS));
+            }}
             camera={camera}
             onCamera={setCamera}
           />
@@ -681,7 +818,7 @@ export function CubeApp() {
           {tab === "board" ? (
             <div ref={panelRef} tabIndex={-1} className="tab-body">
               <h2>Leaderboard</h2>
-              <p>A solve is added only after the cube is finished with the timer on, and only from a signed-in account.</p>
+              <p>A timed solve is added from a signed-in account after you finish the cube yourself, with at most five hints. Auto solve and Instant solve stay off the board.</p>
               {board.length === 0 ? <p>No times yet. Finish a timed scramble and add it.</p> : (
                 <ol className="board">
                   {board.map((entry, index) => (

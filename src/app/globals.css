@@ -117,7 +117,7 @@ h2 { margin: 18px 0 8px; font-size: 16px; }
 }
 .play.with-solve {
   display: grid;
-  grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
+  grid-template-columns: minmax(280px, 400px) minmax(0, 1fr);
   column-gap: 40px;
   align-items: center;
 }
@@ -284,6 +284,7 @@ h2 { margin: 18px 0 8px; font-size: 16px; }
 .clock.done { color: var(--good); }
 .phase-line { min-height: 1.3em; margin-top: 4px; }
 .row { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.solve-actions button { padding: 8px 12px; }
 .scramble, .alg {
   font-family: var(--font-mono), ui-monospace, monospace;
   font-size: 13px;
