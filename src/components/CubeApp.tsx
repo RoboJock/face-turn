@@ -795,7 +795,7 @@ export function CubeApp() {
               <details className="lesson-group" open>
                 <summary>Video tutorials</summary>
                 <div className="video-list">
-                  {REFERENCES.filter((link) => link.videoId).map((link) => (
+                  {REFERENCES.filter((link) => link.videoId).sort((a, b) => a.size - b.size).map((link) => (
                     <a key={link.href} className="video-card" href={link.href} target="_blank" rel="noreferrer">
                       <img src={`https://i.ytimg.com/vi/${link.videoId}/hqdefault.jpg`} alt="" width={168} height={94} />
                       <span>
