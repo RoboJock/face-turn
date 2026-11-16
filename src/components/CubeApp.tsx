@@ -85,6 +85,7 @@ export function CubeApp() {
   const [hintsUsed, setHintsUsed] = useState(0);
   const [assisted, setAssisted] = useState(false);
   const [autoMode, setAutoMode] = useState<"pace" | "instant" | null>(null);
+  const [solvePrompt, setSolvePrompt] = useState<"pace" | "instant" | null>(null);
   const hintsRef = useRef(0);
   const assistedRef = useRef(false);
   const solveRun = useRef(0);
@@ -339,10 +340,6 @@ export function CubeApp() {
 
   async function autoSolve(instant: boolean) {
     if (autoLock.current || busy() || !scramble || isSolved(cubeRef.current)) return;
-    const pace = instant
-      ? "Instant solve finishes the cube immediately. This solve will not be saved on the leaderboard."
-      : "Auto solve turns the cube one move at a time, at a normal pace, until it is solved. This solve will not be saved on the leaderboard.";
-    if (!window.confirm(pace)) return;
     const run = solveRun.current + 1;
     solveRun.current = run;
     autoLock.current = true;
@@ -493,6 +490,13 @@ export function CubeApp() {
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
+      if (solvePrompt) {
+        if (event.key === "Escape") {
+          event.preventDefault();
+          setSolvePrompt(null);
+        }
+        return;
+      }
       const target = event.target;
       if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) return;
       const key = event.key.length === 1 ? event.key.toLowerCase() : "";
@@ -607,10 +611,10 @@ export function CubeApp() {
                 <button type="button" onClick={askHint} disabled={hinting || autoMode !== null || stage === "solved"}>
                   {hinting ? "Looking…" : hint ? "Another hint" : "I'm stuck"}
                 </button>
-                <button type="button" onClick={() => void autoSolve(false)} disabled={autoMode !== null || stage === "solved" || phase === "idle" || phase === "scrambling"}>
+                <button type="button" onClick={() => setSolvePrompt("pace")} disabled={autoMode !== null || solvePrompt !== null || stage === "solved" || phase === "idle" || phase === "scrambling"}>
                   {autoMode === "pace" ? "Solving…" : "Auto solve"}
                 </button>
-                <button type="button" onClick={() => void autoSolve(true)} disabled={autoMode !== null || stage === "solved" || phase === "idle" || phase === "scrambling"}>
+                <button type="button" onClick={() => setSolvePrompt("instant")} disabled={autoMode !== null || solvePrompt !== null || stage === "solved" || phase === "idle" || phase === "scrambling"}>
                   {autoMode === "instant" ? "Solving…" : "Instant solve"}
                 </button>
               </div>
@@ -848,6 +852,41 @@ export function CubeApp() {
           ) : null}
         </aside>
       </div>
+      {solvePrompt ? (
+        <div className="prompt-backdrop" onMouseDown={() => setSolvePrompt(null)}>
+          <div
+            className="prompt"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="solve-prompt-title"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <p className="mark">Puzzle Cube</p>
+            <h2 id="solve-prompt-title">{solvePrompt === "instant" ? "Instant solve" : "Auto solve"}</h2>
+            <p>
+              {solvePrompt === "instant"
+                ? "This finishes the cube immediately. The solve stays off the leaderboard."
+                : "This turns the cube one move at a time, at a normal pace, until it is solved. The solve stays off the leaderboard."}
+            </p>
+            <div className="row">
+              <button type="button" onClick={() => setSolvePrompt(null)}>Cancel</button>
+              <button
+                type="button"
+                className="primary"
+                id="solve-prompt-confirm"
+                autoFocus
+                onClick={() => {
+                  const instant = solvePrompt === "instant";
+                  setSolvePrompt(null);
+                  void autoSolve(instant);
+                }}
+              >
+                {solvePrompt === "instant" ? "Instant solve" : "Start solving"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

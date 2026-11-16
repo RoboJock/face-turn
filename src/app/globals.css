@@ -19,6 +19,7 @@
   --dot: #4d4338;
   --on-bg: #f6f1e8;
   --on-fg: #1b1511;
+  --scrim: rgba(10, 8, 6, 0.66);
   --s: 62px;
 }
 
@@ -43,6 +44,7 @@
   --dot: #d8cbbd;
   --on-bg: #241c16;
   --on-fg: #fffaf3;
+  --scrim: rgba(36, 28, 22, 0.34);
 }
 
 * { box-sizing: border-box; }
@@ -393,6 +395,35 @@ input[type="text"], input[type="email"], input[type="password"], .colors input[t
 .colors input[type="text"] { width: 140px; }
 .presets { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 28px; }
 .fine { font-size: 13px; }
+
+.prompt-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  padding: 22px;
+  background: var(--scrim);
+  backdrop-filter: blur(8px);
+}
+.prompt {
+  width: min(440px, 100%);
+  margin: 0;
+  padding: 26px 26px 12px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.04), transparent 90px), var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 28px;
+  box-shadow: var(--shadow);
+}
+.prompt h2 {
+  margin: 2px 0 10px;
+  font-family: var(--font-display), Georgia, serif;
+  font-weight: 520;
+  font-size: 30px;
+  letter-spacing: -0.03em;
+}
+.prompt p:not(.mark) { margin: 0; line-height: 1.5; color: var(--muted); }
+.prompt .row { justify-content: flex-end; margin-top: 18px; }
 
 @media (max-width: 860px) {
   h1 { font-size: 28px; }
