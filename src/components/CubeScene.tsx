@@ -6,12 +6,12 @@ import { dragLayerDegrees, faceTurnFromDrag, LAYER_SNAP_DEGREES } from "../lib/d
 import { orbitView, viewMatrix3d, type Mat3 } from "../lib/view";
 import type { Palette } from "../lib/palette";
 const FACES: { face: Face; pose: string }[] = [
-  { face: "U", pose: "rotateX(90deg) translateZ(calc(var(--s) / 2))" },
-  { face: "D", pose: "rotateX(-90deg) translateZ(calc(var(--s) / 2))" },
-  { face: "F", pose: "translateZ(calc(var(--s) / 2))" },
-  { face: "B", pose: "rotateY(180deg) translateZ(calc(var(--s) / 2))" },
-  { face: "R", pose: "rotateY(90deg) translateZ(calc(var(--s) / 2))" },
-  { face: "L", pose: "rotateY(-90deg) translateZ(calc(var(--s) / 2))" },
+  { face: "U", pose: "rotateX(90deg) translateZ(calc(var(--s) / 2 - 0.4px))" },
+  { face: "D", pose: "rotateX(-90deg) translateZ(calc(var(--s) / 2 - 0.4px))" },
+  { face: "F", pose: "translateZ(calc(var(--s) / 2 - 0.4px))" },
+  { face: "B", pose: "rotateY(180deg) translateZ(calc(var(--s) / 2 - 0.4px))" },
+  { face: "R", pose: "rotateY(90deg) translateZ(calc(var(--s) / 2 - 0.4px))" },
+  { face: "L", pose: "rotateY(-90deg) translateZ(calc(var(--s) / 2 - 0.4px))" },
 ];
 
 /** Quarter-turn sign in CSS space. Cube +Y is CSS −Y, which reverses X-axis turns. */
@@ -261,15 +261,16 @@ export function CubeScene({
   const pitch = cube.order === 3 || cube.order === 5 ? 1 : 2;
   const step = cube.order === 5 ? 42 : cube.order === 4 ? 54 : 70;
   const unit = step / pitch;
-  const sticker = cube.order === 5 ? 38 : cube.order === 4 ? 46 : cube.order === 2 ? 78 : 62;
+  const spacing = (cube.order === 2 || cube.order === 4 ? 2 : 1) * unit;
+  const body = spacing + 1;
   const outer = outerIndex(cube.order);
-  spanRef.current = outer * 2 * unit + sticker;
+  spanRef.current = outer * 2 * unit + body;
 
   return (
     <div
       ref={stageRef}
       className="stage"
-      style={{ ["--s" as string]: `${sticker}px` }}
+      style={{ ["--s" as string]: `${body}px` }}
       onPointerDown={pointerDown}
       onPointerMove={pointerMove}
       onPointerUp={pointerUp}
