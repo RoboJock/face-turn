@@ -178,10 +178,8 @@ h2 { margin: 18px 0 8px; font-size: 16px; }
 .orbit-hint.away { opacity: 0; transition: opacity 0.28s ease; }
 .orbit-arrow { position: absolute; display: block; }
 .orbit-arrow svg { display: block; width: 100%; height: 100%; }
-.orbit-arrow.side { width: 42px; height: 42px; top: 70%; }
-.orbit-arrow.left { left: calc(50% - 214px); }
-.orbit-arrow.right { right: calc(50% - 214px); }
-.orbit-arrow.below { width: 54px; height: 34px; left: 50%; bottom: 22px; transform: translateX(-50%); }
+.orbit-arrow.side { width: 28px; height: 96px; top: 46%; right: calc(50% - 228px); }
+.orbit-arrow.below { width: 92px; height: 32px; left: 50%; bottom: 22px; transform: translateX(-50%); }
 @keyframes orbit-hint-in {
   0%, 100% { opacity: 0.55; }
   50% { opacity: 0.95; }

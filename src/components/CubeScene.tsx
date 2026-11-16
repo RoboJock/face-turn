@@ -277,14 +277,11 @@ export function CubeScene({
     >
       <div className="table-shadow" />
       <div className={turningView ? "orbit-hint away" : "orbit-hint"} aria-hidden="true">
-        <span className="orbit-arrow side left">
-          <OrbitArrow direction="left" />
-        </span>
-        <span className="orbit-arrow side right">
-          <OrbitArrow direction="right" />
+        <span className="orbit-arrow side">
+          <OrbitArrow direction="vertical" />
         </span>
         <span className="orbit-arrow below">
-          <OrbitArrow direction="both" />
+          <OrbitArrow direction="horizontal" />
         </span>
       </div>
       <div className="viewport">
@@ -338,14 +335,13 @@ export function CubeScene({
   );
 }
 
-function OrbitArrow({ direction }: { direction: "left" | "right" | "both" }) {
-  const path = direction === "left"
-    ? "M34 10 L12 24 L34 38"
-    : direction === "right"
-      ? "M14 10 L36 24 L14 38"
-      : "M6 16 H42 M6 16 L16 7 M6 16 L16 25 M42 16 L32 7 M42 16 L32 25";
+function OrbitArrow({ direction }: { direction: "vertical" | "horizontal" }) {
+  const vertical = direction === "vertical";
+  const path = vertical
+    ? "M16 4 V68 M16 4 L7 14 M16 4 L25 14 M16 68 L7 58 M16 68 L25 58"
+    : "M4 16 H92 M4 16 L14 7 M4 16 L14 25 M92 16 L82 7 M92 16 L82 25";
   return (
-    <svg viewBox={direction === "both" ? "0 0 48 32" : "0 0 48 48"} aria-hidden="true">
+    <svg viewBox={vertical ? "0 0 32 72" : "0 0 96 32"} aria-hidden="true">
       <path d={path} fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
