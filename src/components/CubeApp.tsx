@@ -8,7 +8,6 @@ import {
   formatMove,
   invertMove,
   isSolved,
-  movesToPutColorOn,
   parseAlg,
   parseMove,
   replaySolved,
@@ -482,12 +481,6 @@ export function CubeApp() {
     setHintLit(Boolean(next?.algorithm));
   }
 
-  function orient(color: "U" | "D", face: "U" | "D") {
-    if (autoLock.current || jobRef.current || queueRef.current.length > 0) return;
-    const alg = movesToPutColorOn(cubeRef.current, color, face);
-    if (alg) enqueue(alg, prefersReduced() ? 16 : TURN_MS);
-  }
-
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
       if (solvePrompt) {
@@ -735,8 +728,6 @@ export function CubeApp() {
             </div>
           ) : null}
           <div className="cube-turns">
-            <button type="button" onClick={() => orient("D", "U")}>Yellow on top</button>
-            <button type="button" onClick={() => orient("U", "D")}>White on bottom</button>
             <button type="button" className={hinted("y'")} onClick={() => enqueue("y'", TURN_MS)}>Turn left</button>
             <button type="button" className={hinted("y")} onClick={() => enqueue("y", TURN_MS)}>Turn right</button>
             <button type="button" onClick={() => setCamera(HOME_VIEW)}>Reset view</button>

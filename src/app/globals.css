@@ -269,7 +269,7 @@ h2 { margin: 18px 0 8px; font-size: 16px; }
 .move-pad { display: grid; grid-template-columns: repeat(3, max-content); gap: 8px 18px; justify-content: center; }
 .move-row { display: flex; gap: 6px; }
 .move-row button, .cube-turns button { min-width: 46px; }
-.cube-turns { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.cube-turns { display: flex; flex-wrap: nowrap; gap: 8px; justify-content: center; }
 .keys { text-align: center; font-size: 13px; margin: 0; padding-bottom: 22px; }
 
 .panel { padding: 14px; }
