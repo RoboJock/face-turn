@@ -159,6 +159,8 @@ h2 { margin: 18px 0 8px; font-size: 16px; }
   font-size: 15px;
 }
 .hint-note { margin: 10px 0 0; font-size: 13px; color: var(--muted); }
+.hint-count span { display: block; }
+.hint-count span + span { margin-top: 4px; }
 .stage {
   position: relative;
   height: 460px;

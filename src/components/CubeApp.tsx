@@ -619,10 +619,9 @@ export function CubeApp() {
                 </button>
               </div>
               {scramble && !assisted ? (
-                <p className="hint-note">
-                  {hintsUsed <= LEADERBOARD_HINT_LIMIT
-                    ? `Hints used: ${hintsUsed}. Up to ${LEADERBOARD_HINT_LIMIT} can still go on the leaderboard.`
-                    : `Hints used: ${hintsUsed}. More than ${LEADERBOARD_HINT_LIMIT} hints keeps this time off the leaderboard.`}
+                <p className="hint-note hint-count">
+                  <span>Hints used: {hintsUsed}.</span>
+                  <span>More than five hints will disqualify this completion from the leaderboard.</span>
                 </p>
               ) : null}
               {hint && stage !== "solved" && hintMove ? (
