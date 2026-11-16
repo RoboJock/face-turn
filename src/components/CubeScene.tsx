@@ -104,7 +104,8 @@ export function CubeScene({
   const stageRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<HTMLDivElement>(null);
   const [live, setLive] = useState(false);
-  const orbit = useRef<{ x: number; y: number; view: Mat3 } | null>(null);
+  const orbit = useRef<{ x: number; y: number; view: Mat3; spun: boolean } | null>(null);
+  const [turningView, setTurningView] = useState(false);
   const viewRef = useRef(camera);
   viewRef.current = camera;
   const orbitFrame = useRef(0);
@@ -204,7 +205,7 @@ export function CubeScene({
       drag.current = face && cubie ? { x: event.clientX, y: event.clientY, face, cubie } : null;
       orbit.current = null;
     } else {
-      orbit.current = { x: event.clientX, y: event.clientY, view: viewRef.current };
+      orbit.current = { x: event.clientX, y: event.clientY, view: viewRef.current, spun: false };
       drag.current = null;
     }
     event.currentTarget.setPointerCapture(event.pointerId);
@@ -212,10 +213,16 @@ export function CubeScene({
 
   function pointerMove(event: React.PointerEvent) {
     if (orbit.current) {
+      const dx = event.clientX - orbit.current.x;
+      const dy = event.clientY - orbit.current.y;
+      if (!orbit.current.spun && dx * dx + dy * dy > 16) {
+        orbit.current.spun = true;
+        setTurningView(true);
+      }
       const next = orbitView(
         orbit.current.view,
-        -(event.clientY - orbit.current.y) * 0.4,
-        (event.clientX - orbit.current.x) * 0.4,
+        -dy * 0.4,
+        dx * 0.4,
       );
       paintCamera(next);
       cancelAnimationFrame(orbitFrame.current);
@@ -247,6 +254,7 @@ export function CubeScene({
     if (active && !active.settling) settleLayer(active.deg, 0, null);
     if (!orbit.current) return;
     orbit.current = null;
+    setTurningView(false);
     onCamera(viewRef.current);
   }
 
@@ -268,6 +276,17 @@ export function CubeScene({
       onPointerCancel={pointerUp}
     >
       <div className="table-shadow" />
+      <div className={turningView ? "orbit-hint away" : "orbit-hint"} aria-hidden="true">
+        <span className="orbit-arrow side left">
+          <OrbitArrow direction="left" />
+        </span>
+        <span className="orbit-arrow side right">
+          <OrbitArrow direction="right" />
+        </span>
+        <span className="orbit-arrow below">
+          <OrbitArrow direction="both" />
+        </span>
+      </div>
       <div className="viewport">
         <div
           ref={sceneRef}
@@ -316,6 +335,19 @@ export function CubeScene({
         </div>
       </div>
     </div>
+  );
+}
+
+function OrbitArrow({ direction }: { direction: "left" | "right" | "both" }) {
+  const path = direction === "left"
+    ? "M34 10 L12 24 L34 38"
+    : direction === "right"
+      ? "M14 10 L36 24 L14 38"
+      : "M6 16 H42 M6 16 L16 7 M6 16 L16 25 M42 16 L32 7 M42 16 L32 25";
+  return (
+    <svg viewBox={direction === "both" ? "0 0 48 32" : "0 0 48 48"} aria-hidden="true">
+      <path d={path} fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }
 
